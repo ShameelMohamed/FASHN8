@@ -32,11 +32,13 @@ st.markdown(background_css, unsafe_allow_html=True)
 
 st.markdown('''# FashN8
 
-Welcome to **FashN8** - your AI-powered daily outfit and fit-check assistant!<br>
+Welcome to **FashN8** — your AI-powered outfit curator, fit‑check, and snap‑to‑shop assistant!<br>
 
 Use the sidebar to navigate:
-- <b>Today\'s Drip</b>: Get your daily outfit recommendation or add new dresses.
-- <b>Fit-Check</b>: Compare your outfit with an inspiration image.
+- <b>Dress++</b>: Add your clothing; detect the item and save it to your wardrobe.
+- <b>Today\'s Drip</b>: Get AI-powered color matches and alternates from your wardrobe, with a short reason for each pick.
+- <b>Fit Check</b>: Virtually try on garments using your photo with multiple garment types.
+- <b>Snap Shop</b>: Upload any inspiration image; we isolate the garment, create a clean search query, and open one-click searches on Amazon, Flipkart, and Myntra.
 
 Stay stylish!
 ''', unsafe_allow_html=True)
