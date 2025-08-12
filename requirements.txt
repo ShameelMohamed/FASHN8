@@ -7,3 +7,4 @@ cloudinary
 clarifai
 rembg
 gradio_client
+onnxruntime
