@@ -1,3 +1,9 @@
 streamlit>=1.25.0
-streamlit-option-menu>=0.3.6
-Pillow>=9.0.0 
+Pillow>=9.0.0
+firebase-admin
+google-generativeai
+numpy
+cloudinary
+clarifai
+rembg
+gradio_client
