@@ -19,7 +19,7 @@ st.markdown(background_css, unsafe_allow_html=True)
 
 # Initialize Firebase if not already initialized
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebasee.json")
+    cred = credentials.Certificate(st.secrets["firebase"])
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -204,3 +204,4 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
