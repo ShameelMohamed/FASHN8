@@ -25,9 +25,9 @@ db = firestore.client()
 
 # Configure Cloudinary
 cloudinary.config(
-    cloud_name="djj1sw8rh",
-    api_key="894844811498647",
-    api_secret="NdjntP2ahsNwzF39YH734dI8msM",
+    cloud_name=st.secrets["cloudinary"]["cloud_name"],
+    api_key=st.secrets["cloudinary"]["api_key"],
+    api_secret=st.secrets["cloudinary"]["api_secret"],
 )
 
 # Set HOME environment variable for Clarifai
@@ -204,4 +204,5 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
