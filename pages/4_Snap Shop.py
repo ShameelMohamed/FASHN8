@@ -9,9 +9,15 @@ from rembg import remove
 
 import urllib.parse
 import requests
+
 st.set_page_config(page_title="Snap Shop", page_icon="🛍️")
 st.title("SNAP SHOP 🛒")
-
+import asyncio
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 background_css = """
 <style>
     
@@ -231,6 +237,7 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
 
 
 
