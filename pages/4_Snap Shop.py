@@ -210,7 +210,7 @@ if uploaded_file:
 
             # BLIP caption generation
             client = Client("hysts/image-captioning-with-blip",
-                            hf_token="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")
+                hf_token=st.secrets["huggingface"]["hf_token"])
             image_for_client = handle_file(temp_path)
             prompt_text = (
                 "Only describe the clothing item itself in the image. "
@@ -231,5 +231,6 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
 
 
