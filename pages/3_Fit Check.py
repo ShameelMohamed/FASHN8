@@ -1,6 +1,12 @@
 import streamlit as st
 from gradio_client import Client, handle_file
 import tempfile
+import asyncio
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 background_css = """
 <style>
     header {
@@ -68,3 +74,4 @@ if st.button("Generate", use_container_width=True):
             st.success("Image generated successfully!")
         else:
             st.error("Failed to get output image.")
+
