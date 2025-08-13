@@ -7,6 +7,12 @@ import cloudinary.uploader
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
+import asyncio
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 background_css = """
 <style>
     
@@ -203,6 +209,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
 
 
