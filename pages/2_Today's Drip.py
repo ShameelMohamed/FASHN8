@@ -19,7 +19,7 @@ st.markdown("""
 
 # ------------------ FIREBASE INIT ------------------
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebasee.json")
+    cred = credentials.Certificate(st.secrets["firebase"])
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -269,3 +269,4 @@ if st.button("Alternate"):
         st.error("Please select a card first.")
     else:
         run_ai_match(exclude_colors=st.session_state.best_match_history)
+
