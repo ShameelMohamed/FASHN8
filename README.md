@@ -2,7 +2,9 @@
 
 AI-powered outfit curator, fit-check, and snap-to-shop assistant built with Streamlit. Manage your wardrobe, get smart color matches, virtually try on garments, and search shopping sites from a single app.
 
-![WhatsApp Image 2025-08-12 at 11 03 24_9f3a254a](https://github.com/user-attachments/assets/9090c524-c8f1-47c3-bec0-a2654a8ee4bb)
+![WhatsApp Image 2025-08-14 at 21 31 09_182ef635](https://github.com/user-attachments/assets/20a49905-6549-4c57-84a0-713fa517c6be)
+
+
 Deployed Version -- fashn8.streamlit.app
 
 ### Features
