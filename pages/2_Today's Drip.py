@@ -8,13 +8,6 @@ st.set_page_config(page_title="Today's Drip", layout="wide")
 st.title("Today's Drip")
 
 
-# Hide Streamlit default header
-st.markdown("""
-<style>
-header {visibility: hidden;}
-</style>
-""", unsafe_allow_html=True)
-
 # --- Firebase init ---
 if not firebase_admin._apps:
     cred = credentials.Certificate(dict(st.secrets["firebase"]))
@@ -405,4 +398,5 @@ window.addEventListener("resize", updateCarousel);
 """
 
 components.html(carousel_html, height=1100, scrolling=False)
+
 
