@@ -9,8 +9,8 @@ from rembg import remove
 
 import urllib.parse
 import requests
+st.set_page_config(page_title="Snap Shop", page_icon="🛍")
 
-st.set_page_config(page_title="Snap Shop", page_icon="🛍️")
 st.title("SNAP SHOP 🛒")
 import asyncio
 try:
@@ -19,8 +19,23 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 background_css = """
+if not st.session_state.get('authentication_status'):
+    st.warning("Please log in to access this page.")
+    if st.button("Login", use_container_width=True):
+        st.switch_page("Home.py")
+    st.stop()
+# Show logged in user and logout in sidebar
+if st.session_state.get('authentication_status'):
+    st.sidebar.success(f"Logged in as {st.session_state['username']}")
+    if st.sidebar.button("Logout", use_container_width=True):
+        st.session_state['authentication_status'] = False
+        st.session_state['username'] = None
+        st.session_state['show_login_form'] = False
+        st.session_state['show_signup_form'] = False
+        st.rerun()
+
+background_css = """
 <style>
-    
     header {
         visibility: hidden;
     }
@@ -47,7 +62,6 @@ def remove_background_locally(image_bytes):
 def multi_store_buttons(query):
     encoded_query = urllib.parse.quote_plus(query)
 
-    # Inject CSS once
     st.markdown("""
     <style>
     .custom-button-container {
@@ -89,7 +103,6 @@ def multi_store_buttons(query):
     </style>
     """, unsafe_allow_html=True)
 
-    # Properly encoded query used in all URLs
     buttons_html = f'''
     <div class="custom-button-container">
         <a href="https://www.amazon.in/s?k={encoded_query}" 
@@ -109,15 +122,12 @@ def multi_store_buttons(query):
         </a>
     </div>
     '''
-
-    # Display the buttons
     st.markdown(buttons_html, unsafe_allow_html=True)
-
 
 
 # ----------- Gemini 1.5 Flash caption refinement -----------
 def refine_caption_with_gemini(raw_caption):
-    GEMINI_API_KEY = st.secrets["gemini"]["api_key"]
+    GEMINI_API_KEY = st.secrets["gemini"]["api_key"]  # <-- replace with your API key
     GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
     prompt = f"""
@@ -155,14 +165,12 @@ Focus only on clothing type, color, material, and style.
         return raw_caption
 
 # ----------- Streamlit UI -----------
-
 uploaded_file = st.file_uploader("Upload your Inspiration Dress Image", type=["png", "jpg", "jpeg", "webp"])
 
 if uploaded_file:
     original_image = Image.open(uploaded_file).convert("RGB")
     width, height = original_image.size
 
-    # Convert image to bytes for rembg and Clarifai
     buffer = io.BytesIO()
     original_image.save(buffer, format="PNG")
     image_bytes = buffer.getvalue()
@@ -173,7 +181,7 @@ if uploaded_file:
             bg_removed_image = remove_background_locally(image_bytes)
 
             # Clarifai apparel detection
-            pat = st.secrets["clarifai"]["pat"]
+            pat = st.secrets["clarifai"]["pat"]  # replace with your PAT
             apparel_model_url = "https://clarifai.com/clarifai/main/models/apparel-detection"
             apparel_model = Model(url=apparel_model_url, pat=pat)
 
@@ -184,10 +192,9 @@ if uploaded_file:
                 st.error("No dress detected.")
                 st.stop()
 
-            # Detect dress/gown/frock region
             dress_labels = [
-                "dress", "gown", "frock","saree",   # women's dresses
-                "shirt", "tshirt", "jacket",        # men's tops
+                "dress", "gown", "frock", "saree",
+                "shirt", "tshirt", "jacket",
                 "coat", "trousers", "jeans",
                 "suit", "blazer", "hoodie",
                 "sweater", "vest"
@@ -214,22 +221,19 @@ if uploaded_file:
             dress_crop = dress_crop.convert("RGB")
             temp_path = save_temp(dress_crop, ext="png")
 
-            # BLIP caption generation
-            client = Client("hysts/image-captioning-with-blip",
-                hf_token=st.secrets["huggingface"]["hf_token"])
+            # -------- Use ovi054/image-to-prompt instead of BLIP --------
+            client = Client("ovi054/image-to-prompt")
             image_for_client = handle_file(temp_path)
-            prompt_text = (
-                "Only describe the clothing item itself in the image. "
-                "Include color, material, pattern, design, and type of clothing. "
-                "Do not mention the person, model, pose, lighting, or background."
+
+            caption = client.predict(
+                image=image_for_client,
+                api_name="/predict"
             )
 
-            caption = client.predict(image=image_for_client, text=prompt_text, api_name="/caption")
-
-            # Clean caption text
+            # Clean caption
             caption = re.sub(r'[^a-zA-Z0-9\s]', '', caption).strip()
 
-            # Refine caption using Gemini 1.5 Flash
+            # Refine caption using Gemini
             refined_caption = refine_caption_with_gemini(caption)
 
             # Show multi-store search buttons
@@ -237,7 +241,3 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
-
-
-
-
