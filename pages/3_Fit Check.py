@@ -7,14 +7,7 @@ try:
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-background_css = """
-<style>
-    header {
-        visibility: hidden;
-    }
-</style>
-"""
-st.markdown(background_css, unsafe_allow_html=True)
+
 st.title("FIT CHECK")
 
 def save_uploaded_file(uploaded_file):
@@ -74,4 +67,5 @@ if st.button("Generate", use_container_width=True):
             st.success("Image generated successfully!")
         else:
             st.error("Failed to get output image.")
+
 
