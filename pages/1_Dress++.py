@@ -13,15 +13,7 @@ try:
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-background_css = """
-<style>
-    
-    header {
-        visibility: hidden;
-    }
-</style>
-"""
-st.markdown(background_css, unsafe_allow_html=True)
+
 
 if not firebase_admin._apps:
     cred = credentials.Certificate(dict(st.secrets["firebase"]))
@@ -209,6 +201,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
 
 
