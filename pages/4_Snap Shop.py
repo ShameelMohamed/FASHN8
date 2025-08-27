@@ -18,7 +18,7 @@ try:
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-background_css = """
+
 if not st.session_state.get('authentication_status'):
     st.warning("Please log in to access this page.")
     if st.button("Login", use_container_width=True):
@@ -241,3 +241,4 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
