@@ -66,6 +66,7 @@ def multi_store_buttons(query):
     <style>
     .custom-button-container {
         display: flex;
+        flex-wrap: wrap;
         gap: 15px;
         margin-bottom: 1rem;
     }
@@ -82,47 +83,40 @@ def multi_store_buttons(query):
         transition: background-color 0.3s ease;
         display: inline-block;
     }
-    .amazon {
-        background-color: #FF9900;
-    }
-    .amazon:hover {
-        background-color: #e68a00;
-    }
-    .flipkart {
-        background-color: #2874F0;
-    }
-    .flipkart:hover {
-        background-color: #215ec9;
-    }
-    .myntra {
-        background-color: #FF3F6C;
-    }
-    .myntra:hover {
-        background-color: #e63662;
-    }
+    .amazon { background-color: #FF9900; }
+    .amazon:hover { background-color: #e68a00; }
+    .flipkart { background-color: #2874F0; }
+    .flipkart:hover { background-color: #215ec9; }
+    .myntra { background-color: #FF3F6C; }
+    .myntra:hover { background-color: #e63662; }
+    .ajio { background-color: #2C2C54; }
+    .ajio:hover { background-color: #1f1f3b; }
+    .meesho { background-color: #E94057; }
+    .meesho:hover { background-color: #cc3449; }
     </style>
     """, unsafe_allow_html=True)
 
     buttons_html = f'''
     <div class="custom-button-container">
-        <a href="https://www.amazon.in/s?k={encoded_query}" 
-           target="_blank" rel="noopener noreferrer" 
-           class="custom-button amazon">
-            Amazon
-        </a>
-        <a href="https://www.flipkart.com/search?q={encoded_query}" 
-           target="_blank" rel="noopener noreferrer" 
-           class="custom-button flipkart">
-            Flipkart
-        </a>
-        <a href="https://www.myntra.com/{encoded_query}" 
-           target="_blank" rel="noopener noreferrer" 
-           class="custom-button myntra">
-            Myntra
-        </a>
+        <a href="https://www.amazon.in/s?k={encoded_query}"
+           target="_blank" rel="noopener noreferrer"
+           class="custom-button amazon">Amazon</a>
+        <a href="https://www.flipkart.com/search?q={encoded_query}"
+           target="_blank" rel="noopener noreferrer"
+           class="custom-button flipkart">Flipkart</a>
+        <a href="https://www.myntra.com/{encoded_query}"
+           target="_blank" rel="noopener noreferrer"
+           class="custom-button myntra">Myntra</a>
+        <a href="https://www.ajio.com/search/?text={encoded_query}"
+           target="_blank" rel="noopener noreferrer"
+           class="custom-button ajio">AJIO</a>
+        <a href="https://www.meesho.com/search?q={encoded_query}"
+           target="_blank" rel="noopener noreferrer"
+           class="custom-button meesho">Meesho</a>
     </div>
     '''
     st.markdown(buttons_html, unsafe_allow_html=True)
+
 
 
 # ----------- Gemini 1.5 Flash caption refinement -----------
@@ -241,4 +235,5 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
 
