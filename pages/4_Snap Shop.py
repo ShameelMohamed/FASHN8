@@ -34,14 +34,7 @@ if st.session_state.get('authentication_status'):
         st.session_state['show_signup_form'] = False
         st.rerun()
 
-background_css = """
-<style>
-    header {
-        visibility: hidden;
-    }
-</style>
-"""
-st.markdown(background_css, unsafe_allow_html=True)
+
 
 # ----------- Fix Clarifai HOME env issue (Windows) -----------
 if "HOME" not in os.environ:
@@ -235,5 +228,6 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
 
 
