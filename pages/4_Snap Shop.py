@@ -115,7 +115,7 @@ def multi_store_buttons(query):
 # ----------- Gemini 1.5 Flash caption refinement -----------
 def refine_caption_with_gemini(raw_caption):
     GEMINI_API_KEY = st.secrets["gemini"]["api_key"]  # <-- replace with your API key
-    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
     prompt = f"""
 You are a fashion search query generator.
@@ -135,7 +135,7 @@ Focus only on clothing type, color, material, and style.
     }
 
     response = requests.post(
-        f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+        f"{_API_URL}?key={_API_KEY}",
         headers=headers,
         json=payload
     )
@@ -145,10 +145,10 @@ Focus only on clothing type, color, material, and style.
         try:
             return result["candidates"][0]["content"]["parts"][0]["text"].strip()
         except Exception as e:
-            st.warning(f"Gemini response parse error: {e}")
+            st.warning(f" response parse error: {e}")
             return raw_caption
     else:
-        st.warning(f"Gemini API error: {response.text}")
+        st.warning(f" API error: {response.text}")
         return raw_caption
 
 # ----------- Streamlit UI -----------
@@ -220,7 +220,7 @@ if uploaded_file:
             # Clean caption
             caption = re.sub(r'[^a-zA-Z0-9\s]', '', caption).strip()
 
-            # Refine caption using Gemini
+            # Refine caption using 
             refined_caption = refine_caption_with_gemini(caption)
 
             # Show multi-store search buttons
@@ -228,6 +228,7 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
 
 
 
