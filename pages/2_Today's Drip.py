@@ -219,7 +219,7 @@ body {{
 
 <script>
 const GEMINI_API_KEY = '{st.secrets["gemini"]["api_key"]}';  // WARNING: exposes key to users
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const shirts_data = {shirts_json};
 const pants_data = {pants_json};
@@ -398,5 +398,6 @@ window.addEventListener("resize", updateCarousel);
 """
 
 components.html(carousel_html, height=1100, scrolling=False)
+
 
 
