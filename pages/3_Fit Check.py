@@ -26,6 +26,20 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+if not st.session_state.get('authentication_status'):
+    st.warning("Please log in to access this page.")
+    if st.button("Login", use_container_width=True):
+        st.switch_page("Home.py")
+    st.stop()
+# Show logged in user and logout in sidebar
+if st.session_state.get('authentication_status'):
+    st.sidebar.success(f"Logged in as {st.session_state['username']}")
+    if st.sidebar.button("Logout", use_container_width=True):
+        st.session_state['authentication_status'] = False
+        st.session_state['username'] = None
+        st.session_state['show_login_form'] = False
+        st.session_state['show_signup_form'] = False
+        st.rerun()
 def save_uploaded_file(uploaded_file):
     if uploaded_file is None:
         return None
@@ -83,6 +97,7 @@ if st.button("Generate", use_container_width=True):
             st.success("Image generated successfully!")
         else:
             st.error("Failed to get output image.")
+
 
 
 
