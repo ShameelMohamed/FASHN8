@@ -13,7 +13,23 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
+# Apply background using custom CSS
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("{bg_url}");
+        background-attachment: fixed;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 # --- Firebase initialization ---
 if not firebase_admin._apps:
     cred = credentials.Certificate(dict(st.secrets["firebase"]))
@@ -129,6 +145,7 @@ if st.session_state.get('authentication_status'):
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
+
 
 
 
