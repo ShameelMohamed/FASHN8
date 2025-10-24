@@ -10,7 +10,23 @@ from rembg import remove
 import urllib.parse
 import requests
 st.set_page_config(page_title="Snap Shop", page_icon="🛍")
+bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
+# Apply background using custom CSS
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("{bg_url}");
+        background-attachment: fixed;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 st.title("SNAP SHOP 🛒")
 import asyncio
 try:
@@ -228,6 +244,7 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
 
 
 
