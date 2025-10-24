@@ -13,7 +13,7 @@ try:
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
+st.title("Dress++")
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
 # Apply background using custom CSS
@@ -217,6 +217,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
 
 
