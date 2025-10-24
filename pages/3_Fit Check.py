@@ -9,7 +9,23 @@ except RuntimeError:
     asyncio.set_event_loop(loop)
 
 st.title("FIT CHECK")
+bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
+# Apply background using custom CSS
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("{bg_url}");
+        background-attachment: fixed;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 def save_uploaded_file(uploaded_file):
     if uploaded_file is None:
         return None
@@ -67,5 +83,6 @@ if st.button("Generate", use_container_width=True):
             st.success("Image generated successfully!")
         else:
             st.error("Failed to get output image.")
+
 
 
