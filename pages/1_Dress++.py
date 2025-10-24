@@ -14,7 +14,23 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
+# Apply background using custom CSS
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("{bg_url}");
+        background-attachment: fixed;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 if not firebase_admin._apps:
     cred = credentials.Certificate(dict(st.secrets["firebase"]))
     firebase_admin.initialize_app(cred)
@@ -201,6 +217,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
 
 
