@@ -7,7 +7,23 @@ import json
 st.set_page_config(page_title="Today's Drip", layout="wide")
 st.title("Today's Drip")
 
+bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
+# Apply background using custom CSS
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("{bg_url}");
+        background-attachment: fixed;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 # --- Firebase init ---
 if not firebase_admin._apps:
     cred = credentials.Certificate(dict(st.secrets["firebase"]))
@@ -398,6 +414,7 @@ window.addEventListener("resize", updateCarousel);
 """
 
 components.html(carousel_html, height=1100, scrolling=False)
+
 
 
 
