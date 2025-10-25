@@ -19,6 +19,7 @@ st.markdown(
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
+        color: white;
     }}
     </style>
     """,
@@ -414,6 +415,7 @@ window.addEventListener("resize", updateCarousel);
 """
 
 components.html(carousel_html, height=1100, scrolling=False)
+
 
 
 
