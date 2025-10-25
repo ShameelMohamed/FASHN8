@@ -153,12 +153,13 @@ if not st.session_state.get('authentication_status'):
 # --- If logged in, show logout in sidebar ---
 if st.session_state.get('authentication_status'):
     st.sidebar.success(f"Logged in as {st.session_state['username']}")
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("Logout", use_container_width=True):
         st.session_state['authentication_status'] = False
         st.session_state['username'] = None
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
+
 
 
 
