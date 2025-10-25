@@ -26,6 +26,7 @@ st.markdown(
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
+        color: white;
     }}
     </style>
     """,
@@ -217,6 +218,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
 
 
