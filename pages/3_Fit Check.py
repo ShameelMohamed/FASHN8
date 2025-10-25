@@ -21,6 +21,7 @@ st.markdown(
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
+        color: white;
     }}
     </style>
     """,
@@ -97,6 +98,7 @@ if st.button("Generate", use_container_width=True):
             st.success("Image generated successfully!")
         else:
             st.error("Failed to get output image.")
+
 
 
 
