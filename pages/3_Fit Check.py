@@ -51,9 +51,9 @@ def save_uploaded_file(uploaded_file):
 # Two uploaders in same row using columns
 col1, col2 = st.columns(2)
 with col1:
-    base_img = st.file_uploader("Upload Your Image", type=["png", "jpg", "jpeg"])
+    base_img = st.file_uploader("Upload Your Image", type=["png", "jpg", "jpeg", "webp"])
 with col2:
-    garment_img = st.file_uploader("Upload Dress Image", type=["png", "jpg", "jpeg"])
+    garment_img = st.file_uploader("Upload Dress Image", type=["png", "jpg", "jpeg","webp"])
 
 # Dropdown selector for garment type
 garment_type = st.selectbox(
@@ -97,6 +97,7 @@ if st.button("Generate", use_container_width=True):
             st.success("Image generated successfully!")
         else:
             st.error("Failed to get output image.")
+
 
 
 
