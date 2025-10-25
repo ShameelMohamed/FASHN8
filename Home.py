@@ -94,7 +94,7 @@ if not st.session_state.get('authentication_status'):
         with st.form("login_form"):
             username = st.text_input("Username")
             password = st.text_input("Password", type="password")
-            submit = st.form_submit_button("Login")
+            submit = st.form_submit_button("Login", use_container_width=True)
             if submit:
                 if not username or not password:
                     st.error("Please enter both username and password.")
@@ -123,7 +123,7 @@ if not st.session_state.get('authentication_status'):
             email = st.text_input("Email")
             password = st.text_input("Password", type="password")
             confirm_password = st.text_input("Confirm Password", type="password")
-            submit = st.form_submit_button("Signup")
+            submit = st.form_submit_button("Signup", use_container_width=True)
             if submit:
                 if not username or not email or not password or not confirm_password:
                     st.error("All fields are required.")
@@ -159,6 +159,7 @@ if st.session_state.get('authentication_status'):
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
+
 
 
 
