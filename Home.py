@@ -11,8 +11,7 @@ st.set_page_config(
     page_title="FashN8 ",
     page_icon="🔥",
     layout="wide",
-    initial_sidebar_state="expanded",
-    theme="dark"
+    initial_sidebar_state="expanded"
 )
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
@@ -26,6 +25,7 @@ st.markdown(
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
+        color:white;
     }}
     </style>
     """,
@@ -146,6 +146,7 @@ if st.session_state.get('authentication_status'):
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
+
 
 
 
