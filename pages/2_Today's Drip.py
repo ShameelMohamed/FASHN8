@@ -21,6 +21,18 @@ st.markdown(
         background-position: center;
         color: white;
     }}
+div.stButton > button:first-child {{
+        background-color: #262730; /* Streamlit dark theme button background */
+        color: white;
+        border: 1px solid #565656;
+        border-radius: 4px;
+    }}
+
+    div.stButton > button:hover {{
+        background-color: #373838;
+        color: white;
+        border-color: #6c6c6c;
+    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -415,6 +427,7 @@ window.addEventListener("resize", updateCarousel);
 """
 
 components.html(carousel_html, height=1100, scrolling=False)
+
 
 
 
