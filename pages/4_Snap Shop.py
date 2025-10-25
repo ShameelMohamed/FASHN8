@@ -151,7 +151,7 @@ Focus only on clothing type, color, material, and style.
     }
 
     response = requests.post(
-        f"{_API_URL}?key={_API_KEY}",
+        f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
         headers=headers,
         json=payload
     )
@@ -244,6 +244,7 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
 
 
 
