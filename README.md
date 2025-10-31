@@ -6,7 +6,8 @@ AI-powered outfit curator, fit-check, and snap-to-shop assistant built with Stre
 
 
 
-Deployed Version -- fashn8.streamlit.app
+Deployed Version -- [fashn8.streamlit.app](https://fashn8.streamlit.app/)  
+wake up the app(normally takes a minute or two, kindly wait with patience) and login with username- Nirmal and password- Infinity
 
 ### Features
 
