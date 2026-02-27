@@ -7,13 +7,23 @@ import cloudinary.uploader
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
-import asyncio
-try:
-    asyncio.get_running_loop()
-except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+import tempfile
+from gradio_client import Client, handle_file
+from PIL import Image, ImageDraw
+from collections import Counter
+from rembg import remove
+from clarifai.client.model import Model
+
 st.title("Dress++")
+
+background_css = """
+<style>
+    header {
+        visibility: hidden;
+    }
+</style>
+"""
+st.markdown(background_css, unsafe_allow_html=True)
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
 # Apply background using custom CSS
@@ -26,34 +36,23 @@ st.markdown(
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
-        color: white;
-    }}
-div.stButton > button:first-child {{
-        background-color: #262730; /* Streamlit dark theme button background */
-        color: white;
-        border: 1px solid #565656;
-        border-radius: 4px;
-    }}
-
-    div.stButton > button:hover {{
-        background-color: #373838;
-        color: white;
-        border-color: #6c6c6c;
     }}
     </style>
     """,
     unsafe_allow_html=True
 )
+
+# Initialize Firebase if not already initialized
 if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(st.secrets["firebase"]))
+    cred = credentials.Certificate(st.secrets["firebase"])
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # Configure Cloudinary
 cloudinary.config(
-    cloud_name=st.secrets["cloudinary"]["cloud_name"],
-    api_key=st.secrets["cloudinary"]["api_key"],
-    api_secret=st.secrets["cloudinary"]["api_secret"],
+    cloud_name="djj1sw8rh",
+    api_key="894844811498647",
+    api_secret="NdjntP2ahsNwzF39YH734dI8msM",
 )
 
 # Set HOME environment variable for Clarifai
@@ -63,14 +62,9 @@ if "HOME" not in os.environ:
 # Check if user is logged in
 if not st.session_state.get('authentication_status'):
     st.warning("Please log in to access this page.")
-    if st.button("Login",use_container_width=True):
+    if st.button("Login", use_container_width=True):
         st.switch_page("Home.py")
     st.stop()
-
-from PIL import Image, ImageDraw
-from collections import Counter
-from rembg import remove
-from clarifai.client.model import Model
 
 # Define clothing categories
 top_items = ["dress", "top", "vest"]
@@ -80,7 +74,7 @@ category_colors = {"top": "green", "bottom": "blue"}
 # Show logged in user and logout in sidebar
 if st.session_state.get('authentication_status'):
     st.sidebar.success(f"Logged in as {st.session_state['username']}")
-    if st.sidebar.button("Logout",use_container_width=True):
+    if st.sidebar.button("Logout", use_container_width=True):
         st.session_state['authentication_status'] = False
         st.session_state['username'] = None
         st.session_state['show_login_form'] = False
@@ -88,7 +82,6 @@ if st.session_state.get('authentication_status'):
         st.rerun()
 
 # Streamlit UI
-st.markdown("<h2>Dress++</h2>", unsafe_allow_html=True)
 st.write("Add your outfit to Find AI Match for your dress in Today's Drip.")
 uploaded_file = st.file_uploader("Upload a clothing image", type=["jpg", "jpeg", "png", "webp"])
 
@@ -122,11 +115,11 @@ if uploaded_file:
     image_bytes = buffer.getvalue()
 
     try:
-        with st.spinner("Uploading..."):
+        with st.spinner("Processing image..."):
             bg_removed_image = remove_background_locally(image_bytes)
             
             # Clarifai setup
-            pat = st.secrets["clarifai"]["pat"]
+            pat = "33d1a403568342b7b4cfb62c84989449"  # Replace with your PAT if needed
             apparel_model_url = "https://clarifai.com/clarifai/main/models/apparel-detection"
             apparel_model = Model(url=apparel_model_url, pat=pat)
 
@@ -143,7 +136,7 @@ if uploaded_file:
             cols = st.columns(2)
             col_idx = 0  # Track which column we're currently using
 
-            for region in regions:
+            for i, region in enumerate(regions):
                 concept = region.data.concepts[0]
                 label = concept.name
                 confidence = concept.value
@@ -168,37 +161,42 @@ if uploaded_file:
                 cropped = bg_removed_image.crop((left, top, right, bottom))
                 hex_crop, _ = get_dominant_color(cropped)
 
-                # Upload cropped image to Cloudinary
-                buffer = io.BytesIO()
-                cropped.save(buffer, format="PNG")
-                buffer.seek(0)
-                upload_result = cloudinary.uploader.upload(
-                    buffer,
-                    folder="fashion8",
-                    public_id=f"{st.session_state['username']}_{label}_{hex_crop.replace('#', '')}"
-                )
-                
-                # Get the URL of the uploaded image
-                image_url = upload_result['secure_url']
-                
                 # Display in alternating columns
                 with cols[col_idx]:
                     st.image(cropped, caption=f"{label.capitalize()} Region", width=200)
                     
-                    # Add upload button for each detected item
-                    if st.button(f"Upload {label.capitalize()}"):
-                        with st.spinner("Uploading..."):
-                            # Upload to Cloudinary
+                    # Add upload button for each detected item with a unique key
+                    if st.button(f"Upload {label.capitalize()}", key=f"upload_{i}_{label}"):
+                        with st.spinner("Generating description and uploading..."):
+                            
+                            # 1. Save cropped image to a temporary file for the Gradio client
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+                                cropped.save(temp_file.name)
+                                temp_path = temp_file.name
+                            
+                            # 2. Get the caption from the AI model
+                            client = Client("ovi054/image-to-prompt")
+                            image_for_client = handle_file(temp_path)
+                            caption = client.predict(
+                                image=image_for_client,
+                                api_name="/predict"
+                            )
+                            
+                            # Clean up the temporary file
+                            os.remove(temp_path)
+
+                            # 3. Upload to Cloudinary
                             buffer = io.BytesIO()
                             cropped.save(buffer, format="PNG")
                             buffer.seek(0)
                             upload_result = cloudinary.uploader.upload(
                                 buffer,
                                 folder="fashion8",
-                                public_id=f"{st.session_state['username']}_{label}_{hex_crop.replace('#', '')}"
+                                public_id=f"{st.session_state['username']}_{label}_{hex_crop.replace('#', '')}_{i}"
                             )
+                            image_url = upload_result['secure_url']
                             
-                            # Find the user document by username
+                            # 4. Update Firestore
                             users_ref = db.collection('users')
                             query = users_ref.where('username', '==', st.session_state['username']).limit(1)
                             user_docs = query.get()
@@ -210,33 +208,29 @@ if uploaded_file:
                             user_doc = user_docs[0]
                             user_ref = user_doc.reference
 
-                            # Get existing data
-                            collection_name = "shirts" if category == "top" else "pants"
+                            # Ensure we use 'pant' to match your DB schema exactly
+                            collection_name = "shirts" if category == "top" else "pant"
                             current_data = user_doc.to_dict().get(collection_name, {})
                             
-                            # Append new color:url to existing data
-                            current_data[hex_crop] = upload_result['secure_url']
+                            # Calculate the new key based on map length + 1
+                            new_key = str(len(current_data) + 1)
                             
-                            # Update the document with merged data
+                            # Format the new entry to match your DB structure
+                            current_data[new_key] = {
+                                "desc": caption,
+                                "hex": hex_crop,
+                                "img": image_url
+                            }
+                            
+                            # Update the document with the new item mapping
                             user_ref.update({
                                 collection_name: current_data
                             })
                             
-                            # Display upload results
-                            st.success(f"{label.capitalize()} uploaded successfully!")
+                            st.success("Uploaded Successfully!")
                 
                 # Toggle between columns (0 and 1)
                 col_idx = (col_idx + 1) % 2
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
-
-
-
-
-
-
-
-
-
-
