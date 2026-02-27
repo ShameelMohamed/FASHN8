@@ -9,7 +9,7 @@ import os
 import re
 
 # --- Configuration ---
-GEMINI_API_KEY = "AIzaSyAUiHPFj5lBH4SM-NQMfY03JhdenIwJRCc"
+GEMINI_API_KEY = st.secrets[gemini]
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 st.set_page_config(page_title="My Personal Stylist", layout="wide")
