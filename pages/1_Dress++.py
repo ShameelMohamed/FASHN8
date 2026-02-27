@@ -16,14 +16,7 @@ from clarifai.client.model import Model
 
 st.title("Dress++")
 
-background_css = """
-<style>
-    header {
-        visibility: hidden;
-    }
-</style>
-"""
-st.markdown(background_css, unsafe_allow_html=True)
+
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
 # Apply background using custom CSS
@@ -234,4 +227,5 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
