@@ -15,11 +15,7 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini
 st.set_page_config(page_title="My Personal Stylist", layout="wide")
 
 # Hide Streamlit default header
-st.markdown("""
-<style>
-header {visibility: hidden;}
-</style>
-""", unsafe_allow_html=True)
+
 
 # --- Background & CSS ---
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
