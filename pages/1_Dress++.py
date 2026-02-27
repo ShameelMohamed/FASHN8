@@ -1,11 +1,14 @@
-import streamlit as st
-import io
+
 import os
 
 # 1. SET THIS FIRST (Before any other imports)
+import os
+
+# 1. IMMEDIATE ENVIRONMENT FIX (Must be before any other imports)
 if "HOME" not in os.environ:
-    # On Windows, USERPROFILE is the equivalent of HOME
-    os.environ["HOME"] = os.environ.get("USERPROFILE", "")
+    os.environ["HOME"] = os.path.expanduser("~")
+import streamlit as st
+import io
 import numpy as np
 import cloudinary
 import cloudinary.uploader
@@ -232,6 +235,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
 
 
