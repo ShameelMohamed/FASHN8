@@ -81,7 +81,7 @@ def fetch_wardrobe_and_schedule(username):
     # Fetch exact keys "shirts", "pant", and "week" based on your DB schema
     return data.get("shirts", {}), data.get("pant", {}), data.get("week", {})
 
-def query_gemini(history, wardrobe_context, week_schedule, target_language, prompt):
+def query_gemini( wardrobe_context, week_schedule, target_language, prompt):
     """
     Sends chat history + wardrobe + schedule + prompt to Gemini, enforcing language and inline images.
     """
@@ -92,8 +92,7 @@ def query_gemini(history, wardrobe_context, week_schedule, target_language, prom
     **USER'S WARDROBE DATA (Includes image URLs):**
     {json.dumps(wardrobe_context, indent=2)}
     
-    **USER'S OUTFIT SCHEDULE THIS WEEK:**
-    {json.dumps(week_schedule, indent=2)}
+    
     
     **YOUR INSTRUCTIONS:**
     1. Always act as a friendly, expert stylist.
