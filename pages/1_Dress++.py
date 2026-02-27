@@ -120,7 +120,7 @@ if uploaded_file:
             bg_removed_image = remove_background_locally(image_bytes)
             
             # Clarifai setup
-            pat = st.secrets["clarifai"]  # Replace with your PAT if needed
+            pat = st.secrets["clarifai"]["pat"]  # Replace with your PAT if needed
             apparel_model_url = "https://clarifai.com/clarifai/main/models/apparel-detection"
             apparel_model = Model(url=apparel_model_url, pat=pat)
 
@@ -235,6 +235,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
 
 
 
