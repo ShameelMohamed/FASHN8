@@ -37,15 +37,7 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-background_css = """
-<style>
-    
-    header {
-        visibility: hidden;
-    }
-</style>
-"""
-st.markdown(background_css, unsafe_allow_html=True)
+
 
 st.markdown('''# FashN8
 
@@ -164,4 +156,5 @@ if st.session_state.get('authentication_status'):
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
+
 
