@@ -11,7 +11,7 @@ st.set_page_config(
     page_title="FashN8 ",
     page_icon="🔥",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
@@ -25,32 +25,27 @@ st.markdown(
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
-        color:white;
-
-    div.stButton > button:first-child {{
-            background-color: #262730; /* Streamlit dark theme button background */
-            color: white;
-            border: 1px solid #565656;
-            border-radius: 4px;
-        }}
-    
-        div.stButton > button:hover {{
-            background-color: #373838;
-            color: white;
-            border-color: #6c6c6c;
-        }}
-        }}
+    }}
     </style>
     """,
     unsafe_allow_html=True
 )
 # --- Firebase initialization ---
 if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(st.secrets["firebase"]))
+    cred = credentials.Certificate(st.secrets["firebase"])
     firebase_admin.initialize_app(cred)
+
 db = firestore.client()
 
-
+background_css = """
+<style>
+    
+    header {
+        visibility: hidden;
+    }
+</style>
+"""
+st.markdown(background_css, unsafe_allow_html=True)
 
 st.markdown('''# FashN8
 
@@ -94,7 +89,7 @@ if not st.session_state.get('authentication_status'):
         with st.form("login_form"):
             username = st.text_input("Username")
             password = st.text_input("Password", type="password")
-            submit = st.form_submit_button("Login", use_container_width=True)
+            submit = st.form_submit_button("Login")
             if submit:
                 if not username or not password:
                     st.error("Please enter both username and password.")
@@ -123,7 +118,7 @@ if not st.session_state.get('authentication_status'):
             email = st.text_input("Email")
             password = st.text_input("Password", type="password")
             confirm_password = st.text_input("Confirm Password", type="password")
-            submit = st.form_submit_button("Signup", use_container_width=True)
+            submit = st.form_submit_button("Signup")
             if submit:
                 if not username or not email or not password or not confirm_password:
                     st.error("All fields are required.")
@@ -138,13 +133,23 @@ if not st.session_state.get('authentication_status'):
                         st.error("Passwords do not match.")
                     else:
                         # Add user with random doc ID
+                        # Add user with random doc ID
                         users_ref.add({
-                            'username': username,
-                            'password': password,
-                            'email': email,
-                            'shirts': {},  # Initialize empty collections
-                            'pants': {}
-                        })
+    'username': username,
+    'password': password,
+    'email': email,
+    'shirts': {},  # Initialize empty map for shirts
+    'pant': {},    # Initialize empty map for pants (matching your DB key 'pant')
+    'week': {      # Initialize the weekly planner with empty slots
+        'monday': {'pant': '', 'shirt': ''},
+        'tuesday': {'pant': '', 'shirt': ''},
+        'wednesday': {'pant': '', 'shirt': ''},
+        'thursday': {'pant': '', 'shirt': ''},
+        'friday': {'pant': '', 'shirt': ''},
+        'saturday': {'pant': '', 'shirt': ''},
+        'sunday': {'pant': '', 'shirt': ''}
+    }
+})
                         st.success("Signup successful! Please log in.")
                         st.session_state['show_signup_form'] = False
                         st.session_state['show_login_form'] = True
@@ -153,20 +158,9 @@ if not st.session_state.get('authentication_status'):
 # --- If logged in, show logout in sidebar ---
 if st.session_state.get('authentication_status'):
     st.sidebar.success(f"Logged in as {st.session_state['username']}")
-    if st.sidebar.button("Logout", use_container_width=True):
+    if st.sidebar.button("Logout",use_container_width=True):
         st.session_state['authentication_status'] = False
         st.session_state['username'] = None
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
-
-
-
-
-
-
-
-
-
-
-
