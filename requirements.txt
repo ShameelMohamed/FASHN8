@@ -8,7 +8,7 @@ google-generativeai==0.7.2
 cloudinary==1.41.0
 clarifai==10.0.0
 
-rembg==2.0.56
+rembg==2.0.72
 onnxruntime==1.18.0
 
 gradio_client==1.4.2
