@@ -44,15 +44,15 @@ st.markdown(
 
 # Initialize Firebase if not already initialized
 if not firebase_admin._apps:
-    cred = credentials.Certificate(st.secrets["firebase"])
+    cred = credentials.Certificate(dict(st.secrets["firebase"]))
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # Configure Cloudinary
 cloudinary.config(
-    cloud_name="djj1sw8rh",
-    api_key="894844811498647",
-    api_secret="NdjntP2ahsNwzF39YH734dI8msM",
+    cloud_name=st.secrets["cloudinary"]["cloud_name"],
+    api_key=st.secrets["cloudinary"]["api_key"],
+    api_secret=st.secrets["cloudinary"]["api_secret"],
 )
 
 # Set HOME environment variable for Clarifai
@@ -119,7 +119,7 @@ if uploaded_file:
             bg_removed_image = remove_background_locally(image_bytes)
             
             # Clarifai setup
-            pat = "33d1a403568342b7b4cfb62c84989449"  # Replace with your PAT if needed
+            pat = st.secrets["clarifai"]  # Replace with your PAT if needed
             apparel_model_url = "https://clarifai.com/clarifai/main/models/apparel-detection"
             apparel_model = Model(url=apparel_model_url, pat=pat)
 
@@ -234,3 +234,4 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
