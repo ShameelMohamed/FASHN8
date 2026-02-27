@@ -32,7 +32,7 @@ st.markdown(
 )
 # --- Firebase initialization ---
 if not firebase_admin._apps:
-    cred = credentials.Certificate(st.secrets["firebase"])
+    cred = credentials.Certificate(dict(st.secrets["firebase"]))
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -164,3 +164,4 @@ if st.session_state.get('authentication_status'):
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
+
