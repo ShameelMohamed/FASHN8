@@ -46,7 +46,7 @@ Welcome to **FashN8** — your AI-powered outfit curator, fit‑check, and snap�
 Use the sidebar to navigate:
 - <b>Dress++</b>: Add your clothing; detect the item and save it to your wardrobe.
 - <b>Today\'s Drip</b>: Get AI-powered color matches and alternates from your wardrobe, with a short reason for each pick.
-- <b>Fit Check</b>: Virtually try on garments using your photo with multiple garment types.
+- <b>Virtual TryOn</b>: Virtually try on garments using your photo with multiple garment types.
 - <b>Snap Shop</b>: Upload any inspiration image; we isolate the garment, create a clean search query, and open one-click searches on Amazon, Flipkart, and Myntra.
 
 Stay stylish!
@@ -156,5 +156,6 @@ if st.session_state.get('authentication_status'):
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
+
 
 
