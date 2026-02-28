@@ -8,7 +8,7 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-st.title("FIT CHECK")
+st.title("Virtual Try-on")
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
 # Apply background using custom CSS
@@ -110,6 +110,7 @@ if st.button("Generate", use_container_width=True):
             st.success("Image generated successfully!")
         else:
             st.error("Failed to get output image.")
+
 
 
 
