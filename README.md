@@ -4,7 +4,7 @@ AI-powered outfit curator, fit-check, and snap-to-shop assistant built with Stre
 
 <
 
-<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/0b35f5f2-21d4-4201-89b1-b027bdad4d4f" />
+<img width=500" height="500" alt="image" src="https://github.com/user-attachments/assets/0b35f5f2-21d4-4201-89b1-b027bdad4d4f" />
 
 
 Deployed Version -- [fashn8.streamlit.app](https://fashn8.streamlit.app/)  
