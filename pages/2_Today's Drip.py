@@ -149,7 +149,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // API Keys & Python Data
-const GEMINI_API_KEY = 'AIzaSyAF7X59jBA0CPYlCHw7-GyRORxAQ2G9DX4';
+const GEMINI_API_KEY = st.secrets(["gemini"]["api_key"]);
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const shirts_data = {shirts_json};
@@ -401,4 +401,5 @@ window.addEventListener("resize", updateCarousel);
 """
 
 components.html(carousel_html, height=1050, scrolling=True)
+
 
