@@ -1,221 +1,221 @@
-## FashN8
+## FashN8 v2 – AI Fashion Companion
 
-AI-powered outfit curator, fit-check, and snap-to-shop assistant built with Streamlit. Manage your wardrobe, get smart color matches, virtually try on garments, and search shopping sites from a single app.
+FashN8 is an end-to-end **AI-powered fashion assistant** built on Streamlit. It combines wardrobe digitization, outfit recommendation, virtual try‑on, image-based shopping, and a conversational stylist into a single experience.
 
-<
+The app is organized as a multi‑page Streamlit project:
 
-<img width="500" height="500" alt="image" src="https://github.com/user-attachments/assets/0b35f5f2-21d4-4201-89b1-b027bdad4d4f" />
+- **Home** – Authentication, onboarding, and global layout.
+- **Dress++** – Upload garments, detect clothing items, remove background, auto‑caption, and save items to your digital wardrobe.
+- **Today’s Drip** – AI‑curated shirt–pant combinations from your wardrobe with reasons and day‑wise outfit planning.
+- **Virtual Try-On** – Upload your photo and a garment image to generate a realistic AI try‑on plus an automatic style‑compatibility score.
+- **Snap Shop** – Upload an inspiration photo, extract the garment, generate a refined search query, open multi‑store searches, and find visually similar items in your wardrobe.
+- **Ask Pookie** – Multilingual conversational stylist that chats over your wardrobe and suggests looks, with optional voice in/out.
 
+---
 
-Deployed Version -- [fashn8.streamlit.app](https://fashn8.streamlit.app/)  
-wake up the app(normally takes a minute or two, kindly wait with patience) and login with username- Nirmal and password- Infinity
+## Features
 
-### Features
+- **User Accounts & Cloud Storage**
+  - Email/password auth with **Firebase Firestore** as the main data store.
+  - Per‑user wardrobe structure:
+    - `shirts` – map of shirt items (`id -> { desc, hex, img }`).
+    - `pant` – map of pant items (`id -> { desc, hex, img }`).
+    - `week` – weekly planner (`monday..sunday` each storing `shirt` and `pant` ids).
 
-- **Authentication (Firestore)**
-  - Simple username/password signup and login stored in Firestore.
-  - Sidebar shows session and supports logout.
+- **Dress++ (Wardrobe Digitization)**
+  - Upload clothing images.
+  - Remove background using **rembg**.
+  - Detect garment regions via **Clarifai Apparel Detection**.
+  - For each detected region:
+    - Crop the garment from the background‑removed image.
+    - Compute dominant color hex.
+    - Generate a natural language caption using a **Gradio image‑to‑prompt** model (`ovi054/image-to-prompt`).
+    - Upload the crop to **Cloudinary** and store metadata in Firestore.
 
-- **Dress++**
-  - Upload a clothing image.
-  - Removes background locally.
-  - Detects apparel regions using Clarifai’s Apparel Detection model.
-  - Extracts dominant color per region.
-  - Uploads cropped items to Cloudinary.
-  - Saves items to Firestore under `shirts` or `pants` with color hex → image URL.
+- **Today’s Drip (AI Outfit Matching)**
+  - 3D‑style carousel to browse shirts and pants saved in Firestore.
+  - Select an item (shirt or pant) and ask an AI stylist to find the **best matching counterpart** based on color and description.
+  - Uses **Gemini 2.5 Flash** to pick a match and return a short justification.
+  - One‑click **“Confirm Outfit”** writes the selected shirt/pant ids into the `week.<day>.shirt` and `week.<day>.pant` fields in Firestore for the current weekday.
 
-- **Today’s Drip**
-  - Loads your saved wardrobe from Firestore.
-  - Visual carousel of items by category.
-  - AI picks the best matching complementary item (color-based) using Gemini with a short reason.
-  - Supports alternates to avoid repeats.
-
-- **Fit Check**
-  - Virtual try-on using a Gradio-hosted VTON workflow.
-  - Choose garment type: Top, Full-body, Eyewear, Footwear.
-  - Upload user photo and garment image to generate a composite.
+- **Virtual Try-On**
+  - Upload:
+    - A **person** image (user photo).
+    - A **garment/product** image.
+  - Uses a HuggingFace‑hosted **Fashn‑VTON (Virtual Try-On)** Gradio API (`fashn-ai/fashn-vton-1.5`) to generate the try‑on result.
+  - Automatically:
+    - Extracts dominant colors from both images.
+    - Computes a **compatibility rating** (1.0–5.0 stars) based on color theory.
 
 - **Snap Shop**
-  - Upload an inspiration image.
-  - Isolates garment with background removal.
-  - Detects dress/top/bottom region via Clarifai.
-  - Generates a precise, keyword-friendly query with Gemini.
-  - One-click search buttons for Amazon, Flipkart, and Myntra.
+  - Upload any inspiration/fashion photo.
+  - Remove background and detect clothing regions with **Clarifai**.
+  - Crop the key garment and send it to **Gradio image‑to‑prompt** for a raw caption.
+  - Refine the caption to a compact, search‑friendly phrase with **Gemini 2.5 Flash**.
+  - Produce one‑click search buttons for:
+    - Amazon, Flipkart, Myntra, Ajio, Meesho.
+  - Query your own wardrobe (shirts or pants) via Gemini JSON mode to find **color‑similar items** and display them in a responsive grid.
 
-### Tech Stack
+- **Ask Pookie (Personal Stylist Chat)**
+  - Chat interface using **Streamlit chat UI**.
+  - Uses **Gemini 2.5 Flash** with a rich system prompt and **hard‑coded wardrobe sample** to simulate a personalized stylist.
+  - Supports multiple languages (English, Tamil, Malayalam, Telugu, Hindi) for both:
+    - Input (via **Google Speech Recognition**).
+    - Output (via **gTTS** voice response and on‑screen text).
+  - Outputs outfit suggestions, explanations, and inline images via HTML `<img>` tags.
 
-- **Frontend**: Streamlit
-- **Storage/DB**: Firebase Firestore
-- **Image Processing**: Pillow, rembg
-- **ML APIs**: Clarifai (Apparel Detection), Google Gemini (Generative AI), Gradio (BLIP captioning, VTON)
-- **Media Hosting**: Cloudinary
+- **Color Compatibility Model (XGBoost)**
+  - Separate **XGBoost regression model** trained on shirt/pant color pairs to predict a compatibility rating.
+  - Model served via a **Gradio** `app.py`:
+    - Inputs: two hex colors.
+    - Output: rating 1.0–5.0 (clamped & rounded to nearest 0.5).
 
+---
 
-### Prerequisites
+## Tech Stack
 
-- Python 3.9+ recommended
-- A Firebase project with Firestore enabled
-- Accounts/keys for:
-  - Cloudinary
-  - Clarifai PAT
-  - Google Generative AI (Gemini)
-  - Hugging Face token (for BLIP captioning via Gradio)
+- **Frontend & Orchestration**: Streamlit (multi‑page app)
+- **Cloud & Storage**:
+  - Firebase Firestore (users, wardrobe, weekly planner)
+  - Cloudinary (garment image hosting)
+- **AI / ML Services**:
+  - Clarifai Apparel Detection
+  - Gemini 2.5 Flash (text, JSON mode)
+  - Gradio‑hosted models:
+    - `ovi054/image-to-prompt` (image captioning)
+    - `fashn-ai/fashn-vton-1.5` (virtual try‑on)
+  - XGBoost color compatibility model (local JSON model file)
+- **Utilities & Libraries**:
+  - `rembg`, `Pillow`, `numpy`, `colorsys`
+  - `google-generativeai`, `firebase-admin`, `cloudinary`, `gradio_client`
+  - `speech_recognition`, `gTTS`, `requests`, `streamlit.components.v1`
 
-### Local Setup (Windows PowerShell)
+---
 
-```powershell
-python -m venv .venv
-. .venv\Scripts\Activate.ps1
-pip install --upgrade pip
-pip install -r requirements.txt
-streamlit run Home.py
-```
+## Project Structure (Key Files)
 
-On macOS/Linux:
+- `Home.py` – Main entry page, authentication, and global layout.
+- `pages/1_Dress++.py` – Wardrobe digitization, Clarifai, Cloudinary, Firestore writes.
+- `pages/2_Today's Drip.py` – Carousel UI, Gemini outfit matching, Firestore weekly planner updates.
+- `pages/3_Virtual TryOn.py` – Virtual try‑on with Fashn‑VTON, color compatibility rating.
+- `pages/4_Snap Shop.py` – Garment extraction, search query generation, multi‑store links, wardrobe similarity.
+- `pages/5_Ask Pookie.py` – Chat‑based stylist with multi‑language and voice support.
+- `model/model-v1(XG)/app.py` – Gradio interface serving the XGBoost color‑matching model.
+- `model/model-v1(XG)/fashion_model.json` – Serialized XGBoost model.
+- `model/model-v1(XG)/train.py` & `model-v2(NN)/train.py` – Training scripts and datasets.
+- `requirements.txt` – Python dependencies for the Streamlit app.
+- `firebasee.json` – Firebase service account credentials (not for public repos).
+- `streamlit/config.toml` – Streamlit configuration (if used).
+
+---
+
+## Setup & Installation
+
+### 1. Prerequisites
+
+- **Python** 3.9+ recommended.
+- A **Firebase** project with Firestore and a service account key JSON.
+- Accounts/API keys for:
+  - **Clarifai**
+  - **Google Gemini (Generative Language API)**
+  - **Cloudinary**
+  - **HuggingFace** (for the Fashn‑VTON Gradio client)
+
+> ⚠️ **Security note:** In the current codebase, several keys are set directly in Python files. For production use, move all secrets into environment variables or a secrets manager and never commit them to version control.
+
+### 2. Create & Activate Virtual Environment
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
+.\.venv\Scripts\activate   # Windows
+# source .venv/bin/activate  # macOS / Linux
+```
+
+### 3. Install Dependencies
+
+From the project root (`FashN8`):
+
+```bash
 pip install -r requirements.txt
+```
+
+The model sub‑project under `model/model-v1(XG)` has its own `requirements.txt` if you want to retrain or serve the model separately.
+
+### 4. Configure Firebase
+
+1. Download your **service account JSON** from the Firebase console.
+2. Save it as `firebasee.json` in the project root (or update the paths in:
+   - `Home.py`
+   - `pages/1_Dress++.py`
+   - `pages/2_Today's Drip.py`
+   - `pages/4_Snap Shop.py`
+3. Ensure Firestore has a `users` collection; documents follow the structure used in `Home.py` (created automatically on signup).
+
+### 5. Configure External Services
+
+Depending on your deployment target, you can either:
+
+- Keep the existing hard‑coded keys (for local experimentation only), or
+- Preferably, set environment variables and adjust the code to read from them.
+
+Key places where configuration is expected:
+
+- **Cloudinary** – `cloudinary.config(...)` in `pages/1_Dress++.py`.
+- **Clarifai** – `pat` and model URL in `pages/1_Dress++.py` and `pages/4_Snap Shop.py`.
+- **Gemini** – API keys in:
+  - `pages/2_Today's Drip.py`
+  - `pages/4_Snap Shop.py`
+  - `pages/5_Ask Pookie.py`
+- **HuggingFace token** – `HF_TOKEN` environment variable in `pages/3_Virtual TryOn.py`.
+
+---
+
+## Running the Application
+
+From the project root:
+
+```bash
 streamlit run Home.py
 ```
 
-### Configuration and Secrets
+Streamlit will start the multi‑page app, and you can access it in your browser (typically at `http://localhost:8501`).
 
-Move all secrets out of code and into Streamlit secrets. Create `.streamlit/secrets.toml`:
+Use the Streamlit sidebar to navigate across:
 
-```toml
-# Firebase
-[FIREBASE]
-service_account_json = """
-{ ... your firebase service account JSON ... }
-"""
+- `Dress++`
+- `Today's Drip`
+- `Virtual TryOn`
+- `Snap Shop`
+- `Ask Pookie`
 
-# Cloudinary
-[CLOUDINARY]
-cloud_name = "..."
-api_key = "..."
-api_secret = "..."
+Authentication is handled on the `Home` page; pages will prompt you to log in if you are not authenticated.
 
-# Clarifai
-[CLARIFAI]
-pat = "..."
+---
 
-# Google Generative AI (Gemini)
-[GEMINI]
-api_key = "..."
+## Running the Color Compatibility Model (Optional)
 
-# Hugging Face
-[HF]
-token = "..."
-```
+If you want to run the XGBoost color‑matching Gradio app separately:
 
-Then, in your code, load from `st.secrets` (suggested refactor):
+1. Navigate to the model directory:
 
-```python
-import streamlit as st
-from firebase_admin import credentials
+   ```bash
+   cd model/model-v1(XG)
+   pip install -r requirements.txt
+   python app.py
+   ```
 
-cred_info = st.secrets["FIREBASE"]["service_account_json"]
-cred = credentials.Certificate(json.loads(cred_info))
+2. Open the Gradio URL in your browser and interactively test shirt/pant color pairs.
 
-cloud_name = st.secrets["CLOUDINARY"]["cloud_name"]
-api_key = st.secrets["CLOUDINARY"]["api_key"]
-api_secret = st.secrets["CLOUDINARY"]["api_secret"]
+You can also integrate the API endpoint exposed by this Gradio app back into the main Streamlit app if you prefer using the learned model instead of heuristic ratings.
 
-clarifai_pat = st.secrets["CLARIFAI"]["pat"]
-gemini_key = st.secrets["GEMINI"]["api_key"]
-hf_token = st.secrets["HF"]["token"]
-```
+---
 
-Notes:
-- Current code reads `firebasee.json` from repo root and includes various keys inline. Replace these with `st.secrets` values.
-- Do not commit `firebasee.json` or any secrets to Git.
+## Notes & Future Improvements
 
-### Firestore Data Model
+- **Secret Management** – Externalize all API keys and secrets to environment variables.
+- **Error Handling & Quotas** – Some flows (e.g., virtual try‑on) handle GPU quota limits gracefully, but you may want more robust monitoring and retry strategies.
+- **Model Upgrades** – `model-v2(NN)` is present as an experimental path for a neural‑network‑based matcher; you can extend the app to use it.
+- **Design & Branding** – The app already uses a modern dark background; you can add custom branding, fonts, and theming via Streamlit configuration and CSS.
 
-- Collection: `users`
-  - Document fields:
-    - `username`: string
-    - `password`: string (plaintext now; see Security)
-    - `email`: string
-    - `shirts`: map of `<hex color> -> <image URL>`
-    - `pants`: map of `<hex color> -> <image URL>`
+FashN8 v2 brings together multiple AI components into a cohesive fashion experience—this README reflects the current architecture and is designed to be a base you can evolve as the project grows.
 
-### Usage Guide
-
-- **Login/Signup**
-  - From `Home.py`, choose Login or Signup.
-  - After login, sidebar shows your session and logout button.
-
-- **Dress++**
-  - Upload a clothing image (`jpg/png/webp`).
-  - App removes background, detects apparel regions, extracts dominant color.
-  - Click “Upload <Item>” to save the cropped item to Cloudinary and Firestore under `shirts` or `pants`.
-
-- **Today’s Drip**
-  - Loads your wardrobe by category.
-  - Click “AI Match” to get the best complementary color item with a reason.
-  - Click “Alternate” for another suggestion avoiding previously shown colors.
-
-- **Fit Check**
-  - Upload your photo and a garment image.
-  - Choose garment type, click Generate.
-  - Result image is shown if the Gradio service returns a link.
-
-- **Snap Shop**
-  - Upload any inspiration outfit image.
-  - App isolates the garment, generates a clean search query.
-  - Use Amazon, Flipkart, Myntra buttons to search.
-
-### Theming
-
-- Dark theme configured in `streamlit/config.toml`.
-
-### Environment-specific Notes
-
-- Clarifai SDK may require `HOME` env var on Windows. Code sets:
-  - `os.environ["HOME"] = os.path.expanduser("~")`
-- rembg is CPU-based by default. For performance, see rembg extras or ONNX/GPU options.
-
-### Troubleshooting
-
-- **Firebase credentials**: Ensure service account JSON is valid and accessible. Use `st.secrets` or a path your app can read.
-- **Firestore permissions**: Set Firestore rules to allow your intended read/write from server side.
-- **Cloudinary upload errors**: Verify `cloud_name`, `api_key`, `api_secret`.
-- **Clarifai PAT or model**: Confirm PAT and that the Apparel Detection model endpoint is accessible.
-- **Gemini API errors**: Check API key and quotas in Google AI Studio.
-- **Gradio model limits**: Public demos can rate-limit or change. Replace with your own Space or endpoint if needed.
-- **rembg failures**: Ensure `pip install rembg` succeeded. Consider `pip install onnxruntime` if needed.
-
-### Security Considerations and Suggested Improvements
-
-- Passwords are currently stored in plaintext in Firestore. Replace with a secure hash (e.g., `bcrypt`) or use Firebase Authentication.
-- Move all secrets (Firebase JSON, Cloudinary keys, Clarifai PAT, Gemini key, HF token) to `st.secrets` and remove from code.
-- Validate and sanitize user uploads.
-- Consider rate limiting and monitoring for API usage.
-- Consider per-user storage buckets/folders in Cloudinary.
-
-### Deployment
-
-- Streamlit Community Cloud or any VM can host.
-- Provide secrets through the platform’s secrets manager (`.streamlit/secrets.toml` on Streamlit Cloud).
-- Ensure outbound network access to:
-  - Firebase Firestore
-  - Cloudinary
-  - Clarifai
-  - Google Generative AI
-  - Hugging Face/Gradio endpoints
-
-### License
-
-MIT
-
-### Acknowledgements
-
-- Clarifai Apparel Detection
-- Google Generative AI (Gemini)
-- rembg
-- Gradio and BLIP image captioning
-- Cloudinary
