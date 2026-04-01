@@ -1,30 +1,36 @@
-
 import os
+import io
+import tempfile
+import json
+from collections import Counter
 
 # 1. SET THIS FIRST (Before any other imports)
-import os
-
-# 1. IMMEDIATE ENVIRONMENT FIX (Must be before any other imports)
 if "HOME" not in os.environ:
-    os.environ["HOME"] = os.path.expanduser("~")
+    # On Windows, USERPROFILE is the equivalent of HOME
+    os.environ["HOME"] = os.environ.get("USERPROFILE", os.path.expanduser("~"))
+
 import streamlit as st
-import io
 import numpy as np
 import cloudinary
 import cloudinary.uploader
 import firebase_admin
 from firebase_admin import credentials, firestore
-import json
-import tempfile
 from gradio_client import Client, handle_file
 from PIL import Image, ImageDraw
-from collections import Counter
 from rembg import remove
 from clarifai.client.model import Model
 
 st.title("Dress++")
 
-
+# Hide Streamlit header
+background_css = """
+<style>
+    header {
+        visibility: hidden;
+    }
+</style>
+"""
+st.markdown(background_css, unsafe_allow_html=True)
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
 # Apply background using custom CSS
@@ -43,22 +49,18 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Initialize Firebase if not already initialized
+# Initialize Firebase securely via st.secrets
 if not firebase_admin._apps:
     cred = credentials.Certificate(dict(st.secrets["firebase"]))
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Configure Cloudinary
+# Configure Cloudinary securely via st.secrets
 cloudinary.config(
     cloud_name=st.secrets["cloudinary"]["cloud_name"],
     api_key=st.secrets["cloudinary"]["api_key"],
     api_secret=st.secrets["cloudinary"]["api_secret"],
 )
-
-# Set HOME environment variable for Clarifai
-if "HOME" not in os.environ:
-    os.environ["HOME"] = os.path.expanduser("~")
 
 # Check if user is logged in
 if not st.session_state.get('authentication_status'):
@@ -119,8 +121,8 @@ if uploaded_file:
         with st.spinner("Processing image..."):
             bg_removed_image = remove_background_locally(image_bytes)
             
-            # Clarifai setup
-            pat = st.secrets["clarifai"]["pat"]  # Replace with your PAT if needed
+            # Clarifai setup securely via st.secrets
+            pat = st.secrets["clarifai"]["pat"]  
             apparel_model_url = "https://clarifai.com/clarifai/main/models/apparel-detection"
             apparel_model = Model(url=apparel_model_url, pat=pat)
 
@@ -235,8 +237,3 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
-
-
-
-
-
