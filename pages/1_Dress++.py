@@ -86,7 +86,7 @@ if st.session_state.get('authentication_status'):
 
 # Streamlit UI
 st.write("Add your outfit to Find AI Match for your dress in Today's Drip.")
-uploaded_file = st.file_uploader("Upload a clothing image", type=["jpg", "jpeg", "png", "webp"])
+uploaded_file = st.file_uploader("Upload a clothing image", type=["jpg", "jpeg", "png", "webp",avif])
 
 # Color extraction function
 def get_dominant_color(image_rgba, alpha_threshold=30, min_brightness=20):
