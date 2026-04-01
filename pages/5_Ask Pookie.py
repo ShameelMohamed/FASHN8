@@ -8,7 +8,7 @@ import os
 
 # --- Configuration & Constants ---
 # SECURITY WARNING: Still holding onto your API key here! Be careful sharing this file.
-GEMINI_API_KEY = st.secrets(["gemini"]["api_key"])
+GEMINI_API_KEY = st.secrets["gemini"]["api_key"]
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 LANG_MAP = {
