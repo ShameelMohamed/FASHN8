@@ -1,22 +1,30 @@
+import os
+# 1. IMMEDIATE ENVIRONMENT FIX (Must be before ANY other imports)
+# This prevents Clarifai and Gradio from hanging on Linux cloud servers
+if "HOME" not in os.environ:
+    os.environ["HOME"] = os.path.expanduser("~")
+
 import streamlit as st
+
+# 2. PAGE CONFIG MUST BE THE FIRST STREAMLIT COMMAND
+st.set_page_config(page_title="Snap Shop", page_icon="🛍", layout="wide")
+
+# Now import the rest safely
 from gradio_client import Client, handle_file
 import tempfile
 import re
 import io
-import os
 import json
+import urllib.parse
 from PIL import Image
 from rembg import remove
-import urllib.parse
 import firebase_admin
 from firebase_admin import credentials, firestore
 import google.generativeai as genai
 from clarifai.client.model import Model
 
-st.set_page_config(page_title="Snap Shop", page_icon="🛍", layout="wide")
+# --- UI Styling ---
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
-
-# Keep ONLY the background image and hidden header CSS
 st.markdown(
     f"""
     <style>
@@ -27,7 +35,9 @@ st.markdown(
         background-repeat: no-repeat;
         background-position: center;
     }}
-    header {{ visibility: hidden; }}
+    /* Added extra selectors to ensure header hides in deployed version */
+    header {{ visibility: hidden !important; }}
+    #MainMenu {{ visibility: hidden !important; }}
     </style>
     """,
     unsafe_allow_html=True
@@ -36,12 +46,26 @@ st.markdown(
 st.title("SNAP SHOP 🛒")
 st.caption("Upload an inspiration photo. We'll extract the garment, find it online, and check your wardrobe.")
 
-# ----------- Firebase Init -----------
-if not firebase_admin._apps:
-    # SECURE: Using st.secrets instead of hardcoding firebasee.json
-    cred = credentials.Certificate(dict(st.secrets["firebase"]))
-    firebase_admin.initialize_app(cred)
-db = firestore.client()
+# --- Safe Initialization Blocks ---
+# If secrets are missing in the cloud, these will show an error instead of hanging infinitely.
+
+try:
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(dict(st.secrets["firebase"]))
+        firebase_admin.initialize_app(cred)
+    db = firestore.client()
+except Exception as e:
+    st.error(f"🔥 Firebase Error: Failed to connect. Did you add your secrets to the Streamlit Cloud dashboard? Error details: {e}")
+    st.stop()
+
+try:
+    GEMINI_API_KEY = st.secrets["gemini"]["api_key"]
+    genai.configure(api_key=GEMINI_API_KEY)
+    json_model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"response_mime_type": "application/json"})
+    text_model = genai.GenerativeModel('gemini-2.5-flash')
+except Exception as e:
+    st.error(f"✨ Gemini Error: Failed to configure AI. Check your Streamlit Cloud secrets. Error details: {e}")
+    st.stop()
 
 # ----------- Authentication check -----------
 if not st.session_state.get('authentication_status'):
@@ -70,17 +94,6 @@ if user_docs:
     shirts_data = user_data.get("shirts", {})
     pants_data = user_data.get("pant", {})
 
-# ----------- Gemini AI Init -----------
-# SECURE: Using st.secrets instead of hardcoding the API key
-GEMINI_API_KEY = st.secrets["gemini"]["api_key"]
-genai.configure(api_key=GEMINI_API_KEY)
-json_model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"response_mime_type": "application/json"})
-text_model = genai.GenerativeModel('gemini-2.5-flash')
-
-# ----------- Fix Clarifai HOME env issue (Windows) -----------
-if "HOME" not in os.environ:
-    os.environ["HOME"] = os.path.expanduser("~")
-
 # ----------- Helper Functions -----------
 def save_temp(image, ext="png"):
     with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}") as tmp:
@@ -92,9 +105,7 @@ def remove_background_locally(image_bytes):
     return Image.open(io.BytesIO(output_bytes)).convert("RGBA")
 
 def multi_store_buttons(query):
-    # Pure Streamlit implementation using st.link_button and columns
     encoded_query = urllib.parse.quote_plus(query)
-    
     cols = st.columns(5)
     cols[0].link_button("Amazon", f"https://www.amazon.in/s?k={encoded_query}", use_container_width=True)
     cols[1].link_button("Flipkart", f"https://www.flipkart.com/search?q={encoded_query}", use_container_width=True)
@@ -166,13 +177,15 @@ if uploaded_file:
             bg_removed_image = remove_background_locally(image_bytes)
 
             # Clarifai apparel detection
-            # SECURE: Using st.secrets instead of hardcoding the PAT
-            pat = st.secrets["clarifai"]["pat"]
-            apparel_model_url = "https://clarifai.com/clarifai/main/models/apparel-detection"
-            apparel_model = Model(url=apparel_model_url, pat=pat)
-
-            prediction = apparel_model.predict_by_bytes(image_bytes, input_type="image")
-            regions = prediction.outputs[0].data.regions
+            try:
+                pat = st.secrets["clarifai"]["pat"]
+                apparel_model_url = "https://clarifai.com/clarifai/main/models/apparel-detection"
+                apparel_model = Model(url=apparel_model_url, pat=pat)
+                prediction = apparel_model.predict_by_bytes(image_bytes, input_type="image")
+                regions = prediction.outputs[0].data.regions
+            except Exception as e:
+                st.error(f"Clarifai API Error: Please ensure your 'pat' is correct in secrets. {e}")
+                st.stop()
 
             if not regions:
                 st.error("No dress detected.")
@@ -258,7 +271,6 @@ if uploaded_file:
                         with st.container(border=True):
                             st.image(item['img'], use_container_width=True)
                             
-                            # Using Streamlit's native color picker (disabled) as a neat color swatch!
                             col_a, col_b = st.columns([1, 3])
                             with col_a:
                                 st.color_picker("Color", item['hex'], disabled=True, label_visibility="collapsed", key=f"color_{index}")
