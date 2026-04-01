@@ -10,4 +10,4 @@ gradio_client
 requests>=2.31.0
 SpeechRecognition>=3.10.0
 gTTS>=2.4.0
-
+onnxruntime-headless
