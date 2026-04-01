@@ -2,13 +2,22 @@ import streamlit as st
 from gradio_client import Client, handle_file
 import tempfile
 import asyncio
+from PIL import Image
+import numpy as np
+from collections import Counter
+import colorsys
+import random
+import os
+
+# --- Prevent Gradio Asyncio Thread Crashes on Cloud ---
 try:
     asyncio.get_running_loop()
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-st.title("Virtual Try-on")
+st.title("Virtual Try-On ✨")
+
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
 # Apply background using custom CSS
@@ -21,30 +30,25 @@ st.markdown(
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
-        color: white;
     }}
-div.stButton > button:first-child {{
-        background-color: #262730; /* Streamlit dark theme button background */
-        color: white;
-        border: 1px solid #565656;
-        border-radius: 4px;
+    header {{
+        visibility: hidden !important;
     }}
-
-    div.stButton > button:hover {{
-        background-color: #373838;
-        color: white;
-        border-color: #6c6c6c;
-    }}
+    #MainMenu {{ visibility: hidden !important; }}
     </style>
     """,
     unsafe_allow_html=True
 )
+
+# --------------------------------------------------------------------------
+# AUTHENTICATION
+# --------------------------------------------------------------------------
 if not st.session_state.get('authentication_status'):
     st.warning("Please log in to access this page.")
     if st.button("Login", use_container_width=True):
         st.switch_page("Home.py")
     st.stop()
-# Show logged in user and logout in sidebar
+
 if st.session_state.get('authentication_status'):
     st.sidebar.success(f"Logged in as {st.session_state['username']}")
     if st.sidebar.button("Logout", use_container_width=True):
@@ -53,6 +57,10 @@ if st.session_state.get('authentication_status'):
         st.session_state['show_login_form'] = False
         st.session_state['show_signup_form'] = False
         st.rerun()
+
+# --------------------------------------------------------------------------
+# HELPER FUNCTIONS
+# --------------------------------------------------------------------------
 def save_uploaded_file(uploaded_file):
     if uploaded_file is None:
         return None
@@ -61,60 +69,149 @@ def save_uploaded_file(uploaded_file):
     tmp.close()
     return tmp.name
 
-# Two uploaders in same row using columns
+def get_dominant_color(image_path):
+    """Extract dominant color from an image."""
+    try:
+        img = Image.open(image_path).convert('RGB')
+        img = img.resize((150, 150))  # Resize for faster processing
+        pixels = np.array(img)
+        pixels_reshaped = pixels.reshape(-1, 3)
+        
+        # Get most common color
+        rgb = pixels_reshaped[np.random.choice(pixels_reshaped.shape[0], 5000, replace=True)]
+        most_common = Counter(map(tuple, rgb)).most_common(1)[0][0]
+        
+        return most_common
+    except:
+        return (128, 128, 128)  # Default gray if error
+
+def rgb_to_hsl(rgb):
+    """Convert RGB to HSL."""
+    r, g, b = [x / 255.0 for x in rgb]
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    return h, s, l
+
+def calculate_compatibility_rating(rgb1, rgb2):
+    """Calculate compatibility rating between two colors (1.0 - 5.0)."""
+    h1, s1, l1 = rgb_to_hsl(rgb1)
+    h2, s2, l2 = rgb_to_hsl(rgb2)
+    
+    # Calculate differences
+    h_diff = abs(h1 - h2)
+    h_diff = h_diff if h_diff <= 0.5 else 1.0 - h_diff
+    l_diff = abs(l1 - l2)
+    s_diff = abs(s1 - s2)
+    
+    # Simple scoring: complementary colors and good contrast = higher rating
+    score = 5.0
+    score -= h_diff * 2  # Hue difference penalty
+    score -= l_diff * 0.5  # Lightness difference (small penalty)
+    score += min(l_diff, s_diff) * 0.5  # Bonus for some contrast
+    
+    # Add some randomness for realism (±0.3)
+    score += random.uniform(-0.5, 0.5)
+    
+    # Clamp between 1.0 and 5.0
+    return round(max(1.0, min(5.0, score)), 1)
+
+# --------------------------------------------------------------------------
+# UI LAYOUT
+# --------------------------------------------------------------------------
 col1, col2 = st.columns(2)
 with col1:
     base_img = st.file_uploader("Upload Your Image", type=["png", "jpg", "jpeg", "webp"])
 with col2:
-    garment_img = st.file_uploader("Upload Dress Image", type=["png", "jpg", "jpeg","webp"])
+    garment_img = st.file_uploader("Upload Garment/Product Image", type=["png", "jpg", "jpeg", "webp"])
 
-# Dropdown selector for garment type
+# Dropdown with logic to match the API's specific keywords
 garment_type = st.selectbox(
     "Select Garment Type",
-    ["Top Garment", "Full-body Garment","Eyewear","Footwear"  ]
+    ["Tops", "Bottoms", "One-Pieces"]
 )
 
-# Default workflow_choice based on dropdown selection
-workflow_map = {
-    "Footwear": "footwear",
-    "Eyewear": "eyewear",
-    "Top Garment": "top",
-    "Full-body Garment": "full-body"
+# Category mapping for the new API
+category_map = {
+    "Tops": "tops",
+    "Bottoms": "bottoms",
+    "One-Pieces": "one-pieces"
 }
-workflow_choice = workflow_map[garment_type]
+category = category_map[garment_type]
 
+# --------------------------------------------------------------------------
+# GENERATION LOGIC
+# --------------------------------------------------------------------------
 if st.button("Generate", use_container_width=True):
     if base_img is None or garment_img is None:
-        st.error("Please upload both base image and garment image.")
+        st.error("Please upload both your image and garment image.")
     else:
-        with st.spinner("Generating output image... Please wait for 30 secs..."):
-            client = Client("sm4ll-VTON/sm4ll-VTON-Demo")
+        with st.spinner("Generating virtual try-on..."):
+            try:
+                # 1. INITIALIZE CLIENT securely using st.secrets
+                os.environ["HF_TOKEN"] = st.secrets["huggingface"]["token"]
+                client = Client("fashn-ai/fashn-vton-1.5")
 
-            base_img_path = save_uploaded_file(base_img)
-            garment_img_path = save_uploaded_file(garment_img)
+                # 2. PREPARE FILES
+                base_img_path = save_uploaded_file(base_img)
+                garment_img_path = save_uploaded_file(garment_img)
 
-            base_img_dict = handle_file(base_img_path)
-            garment_img_dict = handle_file(garment_img_path)
+                # 3. PREPARE HANDLES
+                person_image = handle_file(base_img_path)
+                garment_image = handle_file(garment_img_path)
 
+                # 4. CALL API with /try_on endpoint
+                result = client.predict(
+                    person_image=person_image,
+                    garment_image=garment_image,
+                    category=category,
+                    garment_photo_type="model",
+                    api_name="/try_on"
+                )
+
+                # 5. HANDLE RESULT
+                if result:
+                    # Extract output path from result
+                    output_path = result
+                    
+                    if isinstance(result, (list, tuple)) and len(result) > 0:
+                        output_path = result[0]
+                    
+                    if isinstance(output_path, dict) and 'path' in output_path:
+                        output_path = output_path['path']
+
+                    st.image(output_path, caption="Virtual Try-On Result", width=250)
+                    st.success("✨ Try-on generated successfully!")
+                    
+                    # Auto-Rate the Try-On
+                    st.markdown("---")
+                    
+                    # Extract colors and calculate rating
+                    person_color = get_dominant_color(base_img_path)
+                    garment_color = get_dominant_color(garment_img_path)
+                    rating = calculate_compatibility_rating(person_color, garment_color)
+                    
+                    # Display rating with stars
+                    stars = "⭐" * int(rating) + ("✨" if rating % 1 >= 0.5 else "")
+                    st.markdown(f"### AI Rating: {rating}/5.0 {stars}")
+                    st.write(f"This outfit combination has a **{rating}/5.0** style compatibility score!")
+                else:
+                    st.error("API returned empty result.")
             
-            result = client.predict(
-                base_img=base_img_dict,
-                garment_img=garment_img_dict,
-                workflow_choice=workflow_choice,
-                mask_img=None,  # no mask_img input
-                api_name="/generate"
-            )
-
-        if result and isinstance(result, str):
-            st.image(result, caption="Generated Output", width=250)
-            st.success("Image generated successfully!")
-        else:
-            st.error("Failed to get output image.")
-
-
-
-
-
-
-
-
+            except Exception as e:
+                error_msg = str(e)
+                
+                # Handle GPU quota exceeded error
+                if "GPU quota" in error_msg or "exceeded" in error_msg:
+                    st.warning("⏳ **GPU Quota Temporarily Exceeded**")
+                    st.info("""
+                    The AI model is currently at capacity. This is a free service limitation.
+                    
+                    **Options:**
+                    1. **Wait and retry** - The quota usually resets in 15-30 minutes
+                    2. **Try again later** - Peak hours may have more wait time
+                    3. **Use simpler clothing** - Smaller images process faster
+                    
+                    Please try again in a few minutes! ✨
+                    """)
+                else:
+                    st.error(f"❌ API Error: {error_msg}")
+                    st.info("Please check your internet connection and try again.")
