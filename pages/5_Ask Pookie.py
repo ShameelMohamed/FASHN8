@@ -7,7 +7,7 @@ from gtts import gTTS
 import os
 
 # --- Configuration & Constants ---
-# SECURITY WARNING: Still holding onto your API key here! Be careful sharing this file.
+# SECURITY WARNING: API key hidden via st.secrets to protect your account on GitHub.
 GEMINI_API_KEY = st.secrets["gemini"]["api_key"]
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
@@ -15,17 +15,21 @@ LANG_MAP = {
     "English": "en-US", "Tamil": "ta-IN", "Malayalam": "ml-IN", "Telugu": "te-IN", "Hindi": "hi-IN"
 }
 
-# Hardcoded Wardrobe to save tokens and skip DB calls
+# Updated Wardrobe Data (5 Pants, 5 Shirts)
 WARDROBE_DATA = {
     "pants": {
-        "1": {"desc": "Light blue cargo-style trousers", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772189744/fashion8/tess_pants_182546_1.png", "hex": "#182546"},
-        "2": {"desc": "Slim fit black high-waisted trousers", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772189948/fashion8/tess_pants_131716_3.png", "hex": "#131716"},
-        "3": {"desc": "Beige patchwork relaxed trousers", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772209726/fashion8/tess_pants_f8f3ed_1.png", "hex": "#f8f3ed"}
+        "1": {"desc": "Navy blue button-down shirt and light blue trousers with multiple pockets and relaxed fit.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772189744/fashion8/tess_pants_182546_1.png", "hex": "#182546"},
+        "2": {"desc": "Black high-waisted trousers, slim fit, cuffed at ankles.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772189948/fashion8/tess_pants_131716_3.png", "hex": "#131716"},
+        "3": {"desc": "Beige trousers with patchwork design, relaxed fit.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772209726/fashion8/tess_pants_f8f3ed_1.png", "hex": "#f8f3ed"},
+        "4": {"desc": "Black trousers, lightweight fabric, slim fit, button and zipper closure.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772262219/fashion8/tess_pants_252728_2.png", "hex": "#252728"},
+        "5": {"desc": "Beige loose-fitting slim fit trousers, slightly tapered, adjustable waistband.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1774459213/fashion8/tess_pants_e0d5bf_3.png", "hex": "#e0d5bf"}
     },
     "shirts": {
-        "1": {"desc": "Navy blue button-down shirt", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772189718/fashion8/tess_top_1e2d51_0.png", "hex": "#1e2d51"},
-        "2": {"desc": "White designer button-down shirt", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772189893/fashion8/tess_top_d0d0d0_0.png", "hex": "#d0d0d0"},
-        "3": {"desc": "Maroon long-sleeved t-shirt", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772209773/fashion8/tess_top_721c25_2.png", "hex": "#721c25"}
+        "1": {"desc": "Navy blue button-down shirt, long sleeves, lightweight.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772189718/fashion8/tess_top_1e2d51_0.png", "hex": "#1e2d51"},
+        "2": {"desc": "White button-down shirt with unique chest design, long sleeves.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772189893/fashion8/tess_top_d0d0d0_0.png", "hex": "#d0d0d0"},
+        "3": {"desc": "Maroon long-sleeved t-shirt with small chest pocket, relaxed fit.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772209773/fashion8/tess_top_721c25_2.png", "hex": "#721c25"},
+        "4": {"desc": "Beige button-down shirt, long sleeves, subtle texture.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1772262260/fashion8/tess_top_b1927d_3.png", "hex": "#b1927d"},
+        "5": {"desc": "Long-sleeved green button-down shirt.", "img": "https://res.cloudinary.com/djj1sw8rh/image/upload/v1774459176/fashion8/tess_top_275030_1.png", "hex": "#275030"}
     }
 }
 
@@ -53,53 +57,51 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Authentication Check ---
+# --- Authentication Check & Sidebar Profile ---
 if not st.session_state.get('authentication_status'):
     st.warning("Please log in to access your personal stylist.")
     if st.button("Login", use_container_width=True):
         st.switch_page("Home.py") 
     st.stop()
 
+if st.session_state.get('authentication_status'):
+    st.sidebar.success(f"Logged in as {st.session_state['username']}")
+    if st.sidebar.button("Logout", use_container_width=True):
+        st.session_state['authentication_status'] = False
+        st.session_state['username'] = None
+        st.session_state['show_login_form'] = False
+        st.session_state['show_signup_form'] = False
+        st.rerun()
+
 # --- Helper Functions ---
-def query_gemini(history, wardrobe_context, prompt, target_lang):
-    """Sends chat history, wardrobe context, and new prompt to Gemini."""
+def query_gemini(wardrobe_context, prompt, target_lang):
+    """Sends ONLY the current prompt and compressed wardrobe to Gemini to save tokens."""
+    
+    # Compact the JSON to remove unnecessary whitespace/newlines and save tokens
+    compact_wardrobe = json.dumps(wardrobe_context, separators=(',', ':'))
     
     system_instruction = f"""
-    You are Pookie, a friendly, professional, high-end Personal Fashion Stylist AI. 
+    You are Pookie, an elite Personal Fashion Stylist AI. 
     You have access to the user's digital wardrobe database.
     
     **USER'S WARDROBE DATA:**
-    {json.dumps(wardrobe_context, indent=2)}
+    {compact_wardrobe}
     
-    **YOUR INSTRUCTIONS:**
+    **CRITICAL INSTRUCTIONS - YOU MUST FOLLOW THESE:**
     1. Reply ONLY in {target_lang}.
-    2. Look at their wardrobe data above (Keys are Hex Colors/IDs, Values usually contain Image URLs).
-    3. Suggest outfits by combining specific Shirts and Pants from their wardrobe.
-    4. Provide detailed and creative responses explaining *why* the styles work together.
-    5. You MUST show images of the suggested items using exactly this HTML format: 
-       <br><img src="URL_HERE" width="120" style="border-radius:10px;"><br>
+    2. You specialize EXCLUSIVELY in MEN'S FORMAL and SMART-CASUAL WEAR. Tailor your language, advice, and outfit combinations strictly for a sharp, sophisticated, masculine, and professional aesthetic.
+    3. Suggest a complete outfit by combining specific Shirts and Pants from the wardrobe data above.
+    4. Provide detailed responses explaining *why* the styles, colors, and textures work together for a professional or smart-casual setting.
+    5. **NO LENGTH LIMITS:** Provide a full, comprehensive answer. Do not cut your response short.
+    6. **IMAGE REQUIREMENT:** You ABSOLUTELY MUST show the images of the items you are recommending. Find the "img" URL for the item in the wardrobe data, and display it using exactly this HTML tag:
+       <br><img src="INSERT_IMG_URL_HERE" width="150" style="border-radius:10px; margin: 10px 0;"><br>
+       Do NOT use markdown for images. Only use the exact HTML tag above.
+    7. i want the output response short and to the point with a little explanation for choice and must include images in response   
+    **USER PROMPT:** {prompt}
     """
     
-    contents = [{"role": "user", "parts": [{"text": system_instruction}]}]
-    
-    for msg in history:
-        role = "user" if msg["role"] == "user" else "model"
-        contents.append({
-            "role": role,
-            "parts": [{"text": msg["content"]}]
-        })
-        
-    contents.append({
-        "role": "user",
-        "parts": [{"text": prompt}]
-    })
-
     payload = {
-        "contents": contents,
-        "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 800, 
-        }
+        "contents": [{"role": "user", "parts": [{"text": system_instruction}]}],
     }
 
     try:
@@ -136,7 +138,7 @@ def play_voice(text, lang_code):
     try:
         clean_text = re.sub(r'<[^>]+>', '', text)
         short_lang = lang_code.split('-')[0] 
-        tts = gTTS(text=clean_text[:300], lang=short_lang) 
+        tts = gTTS(text=clean_text, lang=short_lang) 
         tts.save("temp_out.mp3")
         st.audio("temp_out.mp3", format="audio/mp3", autoplay=True)
     except Exception as e:
@@ -145,11 +147,10 @@ def play_voice(text, lang_code):
 # --- Main App Logic ---
 
 username = st.session_state.get('username', 'Guest')
-# Assign the hardcoded dictionary directly to the context
 wardrobe_context = WARDROBE_DATA
 
-# Sidebar Controls
-st.sidebar.title(f"Stylist for {username}")
+# Sidebar Controls (Below the login status)
+st.sidebar.divider()
 selected_lang_name = st.sidebar.selectbox("Language", list(LANG_MAP.keys()))
 selected_lang_code = LANG_MAP[selected_lang_name]
 
@@ -163,7 +164,7 @@ if st.sidebar.button("Clear Chat Memory"):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display Chat History
+# Display Chat History (UI Only)
 st.title("Ask Pookie ✨")
 
 for message in st.session_state.messages:
@@ -198,7 +199,6 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Pookie is thinking..."):
             ai_response_text = query_gemini(
-                st.session_state.messages[:-1], 
                 wardrobe_context,               
                 user_input,
                 selected_lang_name
