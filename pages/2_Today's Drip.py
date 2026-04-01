@@ -5,11 +5,13 @@ from firebase_admin import credentials, firestore
 import json
 import datetime
 
+# --- Page Config MUST be first ---
 st.set_page_config(page_title="Today's Drip", layout="wide")
+
 st.title("Today's Drip")
 bg_url = "https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg"
 
-# Apply background using custom CSS
+# Apply background using custom CSS and hide UI elements robustly
 st.markdown(
     f"""
     <style>
@@ -20,17 +22,22 @@ st.markdown(
         background-repeat: no-repeat;
         background-position: center;
     }}
-    header {{visibility: hidden;}}
+    header {{ visibility: hidden !important; }}
+    #MainMenu {{ visibility: hidden !important; }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
 # --- Firebase init (Backend) ---
-if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(st.secrets["firebase"]))
-    firebase_admin.initialize_app(cred)
-db = firestore.client()
+try:
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(dict(st.secrets["firebase"]))
+        firebase_admin.initialize_app(cred)
+    db = firestore.client()
+except Exception as e:
+    st.error(f"🔥 Firebase Error: Failed to connect. Did you add your secrets to the Streamlit Cloud dashboard? {e}")
+    st.stop()
 
 # --- Authentication check ---
 if not st.session_state.get('authentication_status'):
@@ -43,10 +50,8 @@ if not st.session_state.get('authentication_status'):
 if st.session_state.get('authentication_status'):
     st.sidebar.success(f"Logged in as {st.session_state['username']}")
     if st.sidebar.button("Logout", use_container_width=True):
-        st.session_state['authentication_status'] = False
-        st.session_state['username'] = None
-        st.session_state['show_login_form'] = False
-        st.session_state['show_signup_form'] = False
+        for key in ['authentication_status', 'username', 'show_login_form', 'show_signup_form']:
+            st.session_state[key] = None
         st.rerun()
 
 # --- Fetch clothing data & DOCUMENT ID ---
@@ -58,7 +63,7 @@ if not user_docs:
     st.error("No clothing data found for this user.")
     st.stop()
 
-# THE FIX: Grab the exact document ID to pass to the frontend
+# Get the exact document ID to pass to the frontend
 user_doc_id = user_docs[0].id 
 user_data = user_docs[0].to_dict()
 
@@ -66,12 +71,16 @@ user_data = user_docs[0].to_dict()
 shirts_data = user_data.get("shirts", {})
 pants_data = user_data.get("pant", {}) # DB uses "pant"
 
-shirts_json = json.dumps(shirts_data)
-pants_json = json.dumps(pants_data)
+# Safely escape JSON to prevent parser breaking in frontend
+shirts_json = json.dumps(shirts_data).replace("'", "\\'")
+pants_json = json.dumps(pants_data).replace("'", "\\'")
 
 current_day = datetime.datetime.now().strftime('%A').lower()
 
-# --- HTML + JS (Full 3D Carousel & AI Logic) ---
+# Get Gemini API Key Securely for the Frontend
+frontend_gemini_key = st.secrets["gemini"]["api_key"]
+
+# --- HTML + JS (Full 3D Carousel & AI Logic + DB Delete) ---
 carousel_html = f"""
 <!DOCTYPE html>
 <html>
@@ -79,13 +88,13 @@ carousel_html = f"""
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <style>
-body {{ background: transparent; font-family: 'Inter', "Segoe UI", sans-serif; color: white; margin: 0; padding: 0; }}
+body {{ background: transparent; font-family: 'Inter', "Segoe UI", sans-serif; color: white; margin: 0; padding: 0; overflow-x: hidden; }}
 .top-bar {{ display: flex; justify-content: center; align-items: center; padding: 20px; }}
 .toggle-btn {{ padding: 12px 24px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 30px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
 .toggle-btn:hover {{ background: rgba(255, 255, 255, 0.2); transform: translateY(-2px); }}
-.carousel-container {{ width: 100%; height: 450px; display: flex; align-items: center; justify-content: center; overflow: hidden; }}
+.carousel-container {{ width: 100%; height: 450px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }}
 .carousel {{ position: relative; width: 100%; height: 100%; }}
-.empty-state {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.6); font-size: 1.2rem; }}
+.empty-state {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.6); font-size: 1.2rem; text-align: center; width: 80%; }}
 .card {{ position: absolute; top: 50%; left: 50%; height: 320px; width: 260px; background: rgba(30, 30, 30, 0.9); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transform: translate(-50%, -50%) scale(1); transition: transform 0.4s ease, z-index 0.3s ease, filter 0.4s ease, box-shadow 0.3s ease; z-index: 1; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }}
 .card-img-container {{ height: 250px; width: 100%; background: #f0f0f0; display: flex; justify-content: center; align-items: center; overflow: hidden; }}
 .card img {{ height: 100%; width: 100%; object-fit: cover; }}
@@ -97,10 +106,13 @@ body {{ background: transparent; font-family: 'Inter', "Segoe UI", sans-serif; c
 .card.selected {{ box-shadow: 0 0 20px 5px rgba(76, 175, 80, 0.6) !important; border: 2px solid #4CAF50 !important; }}
 .select-btn {{ background-color: #4CAF50; border: none; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s; }}
 .select-btn:hover {{ background-color: #45a049; }}
-.btn-container {{ width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; position: relative; z-index: 20; }}
+.btn-container {{ width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; position: relative; z-index: 20; display: flex; flex-direction: column; gap: 10px; }}
 .ai-btn {{ width: 100%; padding: 15px; font-size: 18px; background: linear-gradient(135deg, #6e8efb, #a777e3); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.2s; }}
 .ai-btn:hover {{ transform: scale(1.02); }}
-.ai-btn:disabled {{ background: #555; cursor: not-allowed; transform: none; }}
+.ai-btn:disabled {{ background: #555; cursor: not-allowed; transform: none; box-shadow: none; }}
+.delete-btn {{ width: 100%; padding: 12px; font-size: 15px; background: rgba(244, 67, 54, 0.85); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: all 0.2s; }}
+.delete-btn:hover {{ background: rgba(244, 67, 54, 1); transform: scale(1.02); }}
+.delete-btn:disabled {{ background: #555; cursor: not-allowed; transform: none; box-shadow: none; }}
 .ai-result {{ max-width: 600px; margin: 20px auto 40px auto; padding: 20px; border-radius: 16px; background: rgba(25, 25, 35, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-size: 15px; line-height: 1.6; display: none; height: auto; min-height: fit-content; position: relative; z-index: 20; }}
 .match-display {{ display: flex; gap: 20px; align-items: center; }}
 .match-img {{ width: 120px; height: 120px; border-radius: 10px; object-fit: cover; background: white; flex-shrink: 0; }}
@@ -125,17 +137,18 @@ body {{ background: transparent; font-family: 'Inter', "Segoe UI", sans-serif; c
 
 <div class="btn-container">
     <button class="ai-btn" id="aiMatchBtn">✨ Find AI Match</button>
+    <button class="delete-btn" id="deleteItemBtn">🗑️ Delete Selected Item</button>
 </div>
 <div id="aiResult" class="ai-result"></div>
 
 <script type="module">
-// 1. IMPORT FIREBASE WEB SDK (Using doc instead of query)
+// 1. IMPORT FIREBASE WEB SDK
 import {{ initializeApp }} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import {{ getFirestore, doc, updateDoc }} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import {{ getFirestore, doc, updateDoc, deleteField }} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// 2. YOUR EXACT CONFIG
+// 2. YOUR EXACT CONFIG (Web Configs are safe to be public)
 const firebaseConfig = {{
-    apiKey: "AIzaSyD_8TPV504yiO767R0iZDdQu_uVbLyOaYk",
+    apiKey: "AIzaSyDlKT6I-t9G3WvnVSE6WDKIFZVdkbbR1sA",
     authDomain: "fashion8-97039.firebaseapp.com",
     projectId: "fashion8-97039",
     storageBucket: "fashion8-97039.firebasestorage.app",
@@ -149,14 +162,13 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // API Keys & Python Data
-const GEMINI_API_KEY = st.secrets(["gemini"]["api_key"]);
+const GEMINI_API_KEY = '{frontend_gemini_key}';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
-const shirts_data = {shirts_json};
-const pants_data = {pants_json};
+// SAFER JSON PARSING (Fixes rendering issues in deployed apps)
+let shirts_data = JSON.parse('{shirts_json}');
+let pants_data = JSON.parse('{pants_json}');
 const current_day = "{current_day}";
-
-// THIS IS THE BETTER LOGIC: Pre-fetched document ID straight from Python!
 const TARGET_DOC_ID = "{user_doc_id}";
 
 let currentCategory = "shirts";
@@ -169,7 +181,7 @@ function buildCards(data, type) {{
     carousel.innerHTML = "";
     const entries = Object.entries(data);
     if (entries.length === 0) {{
-        carousel.innerHTML = `<div class="empty-state">No ${{type.toLowerCase()}}s added yet. Head to Dress++!</div>`;
+        carousel.innerHTML = `<div class="empty-state">No ${{type.toLowerCase()}}s added yet.<br>Head to Dress++ to upload some!</div>`;
         return;
     }}
     entries.forEach(([id, item], idx) => {{
@@ -177,7 +189,7 @@ function buildCards(data, type) {{
         card.className = "card";
         card.dataset.index = idx;
         card.innerHTML = `
-            <div class="card-img-container"><img src="${{item.img}}" alt="${{type}}" /></div>
+            <div class="card-img-container"><img src="${{item.img}}" alt="${{type}}" onerror="this.src='https://via.placeholder.com/250x250?text=Image+Not+Found'"/></div>
             <div class="card-details">
                 <div class="card-actions">
                     <div class="color-swatch" style="background-color: ${{item.hex}};"></div>
@@ -292,7 +304,7 @@ function renderMatch(match_id, reason, opposite_dict) {{
     resultDiv.innerHTML = `
         <div style="margin-bottom: 10px; font-weight:bold; color: #4CAF50;">✨ Curated Match Found!</div>
         <div class="match-display">
-            <img src="${{itemInfo.img}}" class="match-img">
+            <img src="${{itemInfo.img}}" class="match-img" onerror="this.src='https://via.placeholder.com/120x120?text=No+Img'">
             <div class="match-info">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 14px; color: #ccc;">Match Color:</span>
@@ -313,7 +325,7 @@ document.getElementById("aiMatchBtn").addEventListener("click", async (e) => {{
     const resultDiv = document.getElementById("aiResult");
     if (!selectedItem) {{
         resultDiv.style.display = "block";
-        resultDiv.innerHTML = "<div style='color: #ff5252;'>⚠️ Please select an item first.</div>";
+        resultDiv.innerHTML = "<div style='color: #ff5252;'>⚠️ Please select an item first to find a match.</div>";
         return;
     }}
     btn.disabled = true;
@@ -329,6 +341,64 @@ document.getElementById("aiMatchBtn").addEventListener("click", async (e) => {{
     }}
     btn.disabled = false;
     btn.innerText = "✨ Find AI Match";
+}});
+
+// --- NEW FEATURE: DELETE FROM DATABASE ---
+document.getElementById("deleteItemBtn").addEventListener("click", async (e) => {{
+    const btn = e.target;
+    const resultDiv = document.getElementById("aiResult");
+
+    // 1. Check if item is selected
+    if (!selectedItem) {{
+        resultDiv.style.display = "block";
+        resultDiv.innerHTML = "<div style='color: #ff5252;'>⚠️ Please select an item first to delete.</div>";
+        return;
+    }}
+
+    // 2. Ask for Confirmation
+    const isConfirmed = confirm(`Are you sure you want to delete this ${{selectedItem.type}} from your wardrobe? This action cannot be undone.`);
+    if (!isConfirmed) return;
+
+    // 3. Process Deletion
+    btn.disabled = true;
+    btn.innerText = "Deleting from Database... 🗑️";
+
+    try {{
+        const userRef = doc(db, "users", TARGET_DOC_ID);
+        // Ensure we match the exact string name used in your Firebase map ('shirts' or 'pant')
+        const dbCategory = currentCategory === "shirts" ? "shirts" : "pant"; 
+        
+        // Construct map deletion path using Firestore deleteField()
+        const updateData = {{}};
+        updateData[`${{dbCategory}}.${{selectedItem.id}}`] = deleteField();
+        
+        // Execute Database Update
+        await updateDoc(userRef, updateData);
+
+        // Remove item from local dictionaries so UI updates without page reload
+        if (currentCategory === "shirts") {{
+            delete shirts_data[selectedItem.id];
+        }} else {{
+            delete pants_data[selectedItem.id];
+        }}
+
+        // Reset state and redraw UI
+        selectedItem = null;
+        currentIndex = 0;
+        matchHistory = [];
+        resultDiv.style.display = "none";
+        buildCards(currentCategory === "shirts" ? shirts_data : pants_data, currentCategory === "shirts" ? "Shirt" : "Pant");
+        updateCarousel();
+
+        alert("Item successfully deleted from your wardrobe!");
+
+    }} catch(err) {{
+        console.error("Delete Error:", err);
+        alert("Error deleting item: " + err.message);
+    }}
+
+    btn.disabled = false;
+    btn.innerText = "🗑️ Delete Selected Item";
 }});
 
 document.addEventListener("click", async e => {{
@@ -347,7 +417,7 @@ document.addEventListener("click", async e => {{
         }}
     }}
     
-    // --- THE FIX: DIRECT AND ROBUST FIRESTORE WRITE ---
+    // SAVE OUTFIT TO DATABASE
     if (e.target.id === "confirmBtn") {{
         const match_id = e.target.dataset.matchid;
         const btn = e.target;
@@ -365,15 +435,11 @@ document.addEventListener("click", async e => {{
                 pant_id = selectedItem.id;
             }}
 
-            // Directly target the exact document (No queries!)
             const userRef = doc(db, "users", TARGET_DOC_ID);
             const updateData = {{}};
-            
-            // Format: "week.monday.shirt": "1"
             updateData[`week.${{current_day}}.shirt`] = shirt_id;
             updateData[`week.${{current_day}}.pant`] = pant_id;
 
-            // Execute Database Update
             await updateDoc(userRef, updateData);
 
             btn.innerText = "✅ Locked In for " + current_day.charAt(0).toUpperCase() + current_day.slice(1) + "!";
@@ -382,8 +448,7 @@ document.addEventListener("click", async e => {{
             
         }} catch(err) {{
             console.error("Firebase Update Error:", err);
-            // This alert will show EXACTLY why it failed if it does!
-            alert("Database Error:\\n" + err.message + "\\n\\nPlease verify your Firestore Security Rules allow unauthenticated web writes if using Streamlit.");
+            alert("Database Error:\\n" + err.message);
             btn.innerText = "Error Saving ❌";
             btn.style.backgroundColor = "#ff5252";
             btn.disabled = false;
@@ -400,6 +465,4 @@ window.addEventListener("resize", updateCarousel);
 </html>
 """
 
-components.html(carousel_html, height=1050, scrolling=True)
-
-
+components.html(carousel_html, height=1150, scrolling=True)
