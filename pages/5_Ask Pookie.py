@@ -38,7 +38,7 @@ st.set_page_config(page_title="Ask Pookie✨", layout="wide")
 # --- UI Styling ---
 st.markdown("""
 <style>
-    header {visibility: hidden;}
+    
     .stApp {
         background-image: url("https://logincdn.msftauth.net/shared/5/images/fluent_web_dark_2_bf5f23287bc9f60c9be2.svg");
         background-size: cover;
