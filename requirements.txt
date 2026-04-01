@@ -5,8 +5,7 @@ google-generativeai
 numpy
 cloudinary
 clarifai
-rembg
-onnxruntime-headless
+rembg[cpu]
 opencv-python-headless
 gradio_client
 requests>=2.31.0
